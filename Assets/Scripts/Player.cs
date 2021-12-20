@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class Player : MonoBehaviour
 {
@@ -28,18 +30,54 @@ public class Player : MonoBehaviour
     public bool isKeyUpPressed;
     public bool isKeyDownPressed;
     public bool hasBeenDetected = false;
+    public GameObject startPanel;
+    public GameObject logPanel;
+    public GameObject gameOverPanel;
+    public GameObject successPanel;
+    public float timerGameOver = 0f;
+    public Slider slider;
+    public Color lowHealth;
+    public Color highHealth;
 
 
+    public void SetHealth(int currentValue)
+    {
+        slider.value = this.HP;
+    }
 
     void CameraMove(){
-        this.mainCamera.transform.position = this.transform.position;
-        rotationY += -Input.GetAxis("Mouse X") * lookSpeed;
-        mainCamera.transform.localRotation = Quaternion.Euler(0f, -1f * rotationY, 0f);
-        this.transform.localRotation = this.mainCamera.transform.localRotation;
+        if(!this.startPanel.activeSelf)
+        {
+            this.mainCamera.transform.position = new Vector3(this.transform.position.x, this.transform.position.y - this.gameObject.transform.localScale.y/1.5f, this.transform.position.z);
+            rotationY += -Input.GetAxis("Mouse X") * lookSpeed;
+            mainCamera.transform.localRotation = Quaternion.Euler(0f, -1f * rotationY, 0f);
+            this.transform.localRotation = this.mainCamera.transform.localRotation;
+        }
     }
     // Start is called before the first frame update
+
+    public void StartGame()
+    {
+        Time.timeScale = 1f;
+        this.startPanel.SetActive(false);
+        this.logPanel.SetActive(true); 
+        this.slider.gameObject.SetActive(true);
+        this.SetHealth(this.HP);
+        this.slider.maxValue = 300;
+    }
+
     void Start()
     {
+        this.startPanel = GameObject.Find("Start");
+        this.logPanel = GameObject.Find("Queue");
+        this.gameOverPanel = GameObject.Find("GameOver");
+        this.successPanel = GameObject.Find("Success");
+        this.startPanel.SetActive(true);
+        this.logPanel.SetActive(false);
+        this.gameOverPanel.SetActive(false);
+        this.successPanel.SetActive(false);
+        this.slider.gameObject.SetActive(false);
+        Time.timeScale = 0f;
         isKeyWPressed = false;
         isKeyLeftPressed = false;
         isKeyRightPressed = false;
@@ -51,6 +89,14 @@ public class Player : MonoBehaviour
         float sizeGroundZ = ground.transform.localScale.z;
         this.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX-1)/2, (sizeGroundX-1)/2), 1.4f, Random.Range(-1f * (sizeGroundZ-1)/2, (sizeGroundZ-1)/2));
         this.finalDestination.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX-1)/2, (sizeGroundX-1)/2), sizeGroundY/2 + 0.01f, Random.Range(-1f * (sizeGroundZ-1)/2, (sizeGroundZ-1)/2));
+        float distX = Mathf.Abs(this.finalDestination.transform.position.x - this.transform.position.x);
+        float distZ = Mathf.Abs(this.finalDestination.transform.position.z - this.transform.position.z);
+        while(Mathf.Sqrt(distX * distX + distZ * distZ) < sizeGroundX/2.3) //to ensure that the green circle is not too close
+        {
+            this.finalDestination.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX-1)/2, (sizeGroundX-1)/2), sizeGroundY/2 + 0.01f, Random.Range(-1f * (sizeGroundZ-1)/2, (sizeGroundZ-1)/2));
+            distX = Mathf.Abs(this.finalDestination.transform.position.x - this.transform.position.x);
+            distZ = Mathf.Abs(this.finalDestination.transform.position.z - this.transform.position.z);        
+        }
         this.HP = 300;
         this.rigidBodyComponent = GetComponent<Rigidbody>();
         foreach(var bonusSphere in GameObject.FindGameObjectsWithTag("Bonus"))
@@ -70,10 +116,22 @@ public class Player : MonoBehaviour
 
     }
 
-    void GameOver(){
-        print("U dead");
-        GameObject.Find("Player").SetActive(false);
+    void GameOver()
+    {
+        this.slider.gameObject.SetActive(false);
+        Time.timeScale = 0f;
+        this.logPanel.SetActive(false);
+        this.gameOverPanel.SetActive(true);
         //Destroy(GameObject.Find("Player"));
+    }
+
+    void Success()
+    {
+        this.slider.gameObject.SetActive(false);
+        Time.timeScale = 0f;
+        //this.gameObject.SetActive(false);
+        this.logPanel.SetActive(false);
+        this.successPanel.SetActive(true);
     }
 
     // Update is called once per frame
@@ -127,8 +185,12 @@ public class Player : MonoBehaviour
         }
             this.rigidBodyComponent.MovePosition(this.transform.position + movement);
         if(this.HP <= 0)
-            GameOver();
-
+        {
+            if(this.timerGameOver > 2.2f)
+                GameOver();
+            else
+                this.timerGameOver += Time.deltaTime;
+        }
         foreach(var bonusSphere in this.bonusSpheres)
         {
             if((Mathf.Abs(this.transform.position.x - bonusSphere.transform.position.x) <= 4f * (this.sizeBonusSphere/2f)) && (Mathf.Abs(this.transform.position.z - bonusSphere.transform.position.z) <= 4f * (this.sizeBonusSphere/2)))
@@ -184,9 +246,9 @@ public class Player : MonoBehaviour
             }
         }
 
-        if((Mathf.Abs(this.transform.position.x - finalDestination.transform.position.x) <= this.sizeBonusSphere/2f) && (Mathf.Abs(this.transform.position.z - finalDestination.transform.position.z) <= this.sizeBonusSphere/2))
+        if((Mathf.Abs(this.transform.position.x - finalDestination.transform.position.x) <= 1.5f * this.sizeBonusSphere/2f) && (Mathf.Abs(this.transform.position.z - finalDestination.transform.position.z) <= 1.5f * this.sizeBonusSphere/2))
         {
-            print("you won !!");
+            this.Success();
         }
         if(Input.GetKeyDown(KeyCode.C) && hasBeenDetected)
         {
@@ -198,7 +260,7 @@ public class Player : MonoBehaviour
             
             if(this.isCameraOnPlayer)
             {
-                this.speed /= 2f;
+                this.speed /= 2.5f;
                 this.isCameraOnPlayer = false;
                 this.mainCamera.transform.position = new Vector3(0f, 87f, 0f);
                 this.mainCamera.transform.localRotation = Quaternion.Euler(90, 0f, 0f);
@@ -206,10 +268,20 @@ public class Player : MonoBehaviour
             else
             {
                 this.isCameraOnPlayer = true;
-                this.speed *= 2f;
+                this.speed *= 2.5f;
             }
-        }         
-        
+        }
+        if(this.startPanel.activeSelf && Input.GetKeyDown(KeyCode.Escape))
+            this.StartGame();
+
+
+        if((this.gameOverPanel.activeSelf || this.successPanel.activeSelf) && Input.GetKeyDown(KeyCode.G))
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            StartGame();
+        }
     }
+    
+
 
 }

@@ -33,6 +33,8 @@ public class Drone : MonoBehaviour
     public List<Drone> drones = new List<Drone>();
     public Text log; //where the last communication is displayed
     public bool hasNotifiedSquad;
+    public bool isMissionComplete;
+    //public CanvasGroup visibility;
 
 
     void DetectionLaser()
@@ -53,14 +55,15 @@ public class Drone : MonoBehaviour
                         this.target = hit.transform.gameObject;
                         Player playerScript = target.GetComponent<Player>();
                         this.isPatrol = false;
-                        IntelligentRepartition();
+                        if(!hasDetectedPlayer) //this way IntelligentRepartition is called only once
+                            IntelligentRepartition();
                         if(!playerScript.hasBeenDetected)
                         {
                             playerScript.hasBeenDetected = true;
                             playerScript.isCameraOnPlayer = false;
                             playerScript.mainCamera.transform.position = new Vector3(0f, 87f, 0f);
                             playerScript.mainCamera.transform.localRotation = Quaternion.Euler(90, 0f, 0f);
-                            playerScript.speed /= 2f;
+                            playerScript.speed /= 2.5f;
                             playerScript.isKeyWPressed = false;
                             playerScript.isKeyLeftPressed = false;
                             playerScript.isKeyRightPressed = false;
@@ -91,18 +94,23 @@ public class Drone : MonoBehaviour
 
     public void DisplayToUI(string message)
     {
-        //this.log = message;
-        print(message); //to debug for now
+        this.log.text += "[" + Time.time.ToString("N2") + "] - " + this.tag + ": " + message + "\n\n";
+        //print(message); //to debug for now
     }
 
 
     // Start is called before the first frame update
     void Start()
     {
+        // this.visibility = GetComponent<CanvasGroup>();
+        // this.visibility.alpha = 0;
+        // this.visibility.interactable = false;
+        // this.visibility.blocksRaycasts = false;
         this.hasNotifiedSquad = false;
         this.hasDetectedPlayer = false;
         this.isPatrol = true;
         this.hasInheritedZone = false;
+        this.isMissionComplete = false;
         allRobots = FindObjectsOfType(typeof(Robot)) as Robot[];
         foreach (var robot in allRobots)
         {
@@ -117,7 +125,6 @@ public class Drone : MonoBehaviour
         destroyable = 8;
         layer_mask = 1 << destroyable; 
         layer_mask_wall = 1 << 7;
-        //layer_mask = ~layer_mask;
 
         this.tags = new List<string>{"Drone1", "Drone2", "Drone3", "Drone4"};
         foreach(var droneTag in this.tags)
@@ -160,30 +167,34 @@ public class Drone : MonoBehaviour
 
     public void IntelligentRepartition()
     {
-        string buffer1 = this.tag + " here, I need to do something so I can't patrol anymore. ";
+        string buffer1 = "Target has been detected. I have to lead my robots squad. ";
         string buffer2;
+        Drone inheritor = null;
         if(this.tag == "Drone1")
         {
             if(this.tags.Contains("Drone2"))
             {
                 this.drones[1].zoneMinX = this.zoneMinX;
                 this.drones[1].hasInheritedZone = true;
-                buffer2 = "Drone2, keep watch for me please.";
+                buffer2 = "Drone2, keep watch in my stead.";
+                inheritor = this.drones[1];
             }
             else if(this.tags.Contains("Drone3"))
             {    
                 this.drones[2].zoneMinX = this.zoneMinX;
                 this.drones[2].hasInheritedZone = true;
-                buffer2 = "Drone3, keep watch for me please.";
+                buffer2 = "Drone3, keep watch in my stead.";
+                inheritor = this.drones[2];
             }
             else if(this.tags.Contains("Drone4"))
             {    
                 this.drones[3].zoneMinX = this.zoneMinX;
-                this.drones[2].hasInheritedZone = true;
-                buffer2 = "Drone4, keep watch for me please.";
+                this.drones[3].hasInheritedZone = true;
+                buffer2 = "Drone4, keep watch in my stead.";
+                inheritor = this.drones[3];
             }
             else
-                buffer2 = "Unfortunately I couldn't find another drone to inherit my patrol zone.";    
+                buffer2 = "No drone found to inherit my patrol zone.";    
         }
         
         else if(this.tag == "Drone2")
@@ -192,22 +203,25 @@ public class Drone : MonoBehaviour
             {
                 this.drones[0].zoneMaxX = this.zoneMaxX;
                 this.drones[0].hasInheritedZone = true;
-                buffer2 = "Drone1, keep watch for me please.";
+                buffer2 = "Drone1, keep watch in my stead.";
+                inheritor = this.drones[0];
             }
             else if(this.tags.Contains("Drone3"))
             {
                 this.drones[2].zoneMinX = this.zoneMinX;
                 this.drones[2].hasInheritedZone = true;
-                buffer2 = "Drone3, keep watch for me please.";
+                buffer2 = "Drone3, keep watch in my stead.";
+                inheritor = this.drones[2];
             }
             else if(this.tags.Contains("Drone4"))
             {    
                 this.drones[3].zoneMinX = this.zoneMinX;
                 this.drones[3].hasInheritedZone = true;
-                buffer2 = "Drone4, keep watch for me please.";
+                buffer2 = "Drone4, keep watch in my stead.";
+                inheritor = this.drones[3];
             }
             else
-                buffer2 = "Unfortunately I couldn't find another drone to inherit my patrol zone.";
+                buffer2 = "No drone found to inherit my patrol zone.";
         }
 
         else if(this.tag == "Drone3")
@@ -216,22 +230,25 @@ public class Drone : MonoBehaviour
             {
                 this.drones[3].zoneMinX = this.zoneMinX;
                 this.drones[3].hasInheritedZone = true;
-                buffer2 = "Drone4, keep watch for me please.";
+                buffer2 = "Drone4, keep watch in my stead.";
+                inheritor = this.drones[3];
             }
             else if(this.tags.Contains("Drone2"))
             {
                 this.drones[1].zoneMaxX = this.zoneMaxX;
                 this.drones[1].hasInheritedZone = true;
-                buffer2 = "Drone2, keep watch for me please.";
+                buffer2 = "Drone2, keep watch in my stead.";
+                inheritor = this.drones[1];
             }
             else if(this.tags.Contains("Drone1"))
             {    
                 this.drones[0].zoneMaxX = this.zoneMaxX;
                 this.drones[0].hasInheritedZone = true;
-                buffer2 = "Drone1, keep watch for me please.";
+                buffer2 = "Drone1, keep watch in my stead.";
+                inheritor = this.drones[0];
             }
             else
-                buffer2 = "Unfortunately I couldn't find another drone to inherit my patrol zone.";
+                buffer2 = "No drone found to inherit my patrol zone.";
         }
 
         else if(this.tag == "Drone4")
@@ -240,32 +257,37 @@ public class Drone : MonoBehaviour
             {
                 this.drones[2].zoneMaxX = this.zoneMaxX;
                 this.drones[2].hasInheritedZone = true;
-                buffer2 = "Drone3, keep watch for me please.";
+                buffer2 = "Drone3, keep watch in my stead.";
+                inheritor = this.drones[2];
             }
             else if(this.tags.Contains("Drone2"))
             {    
                 this.drones[1].zoneMaxX = this.zoneMaxX;
                 this.drones[1].hasInheritedZone = true;
-                buffer2 = "Drone2, keep watch for me please.";
+                buffer2 = "Drone2, keep watch in my stead.";
+                inheritor = this.drones[1];
             }
             else if(this.tags.Contains("Drone1"))
             {
                 this.drones[0].zoneMaxX = this.zoneMaxX;
                 this.drones[0].hasInheritedZone = true;
-                buffer2 = "Drone1, keep watch for me please.";
+                buffer2 = "Drone1, keep watch in my stead.";
+                inheritor = this.drones[0];
             }
             else
-                buffer2 = "Unfortunately I couldn't find another drone to inherit my patrol zone.";
+                buffer2 = "No drone found to inherit my patrol zone.";
         }
         else
             buffer2 = "Wait, what am I exactly ?";
-        DisplayToUI(buffer1 + buffer2);
-        foreach(var drone in this.drones)
-            drone.tags.Remove(this.tag);
-        //print("new list of tags : ");
-        // foreach(var tag in this.tags) {
-        //     print(tag);
-        // }
+        if(!hasNotifiedSquad)
+        {
+            DisplayToUI(buffer1 + buffer2);
+            foreach(var drone in this.drones)
+                drone.tags.Remove(this.tag);
+
+            if(inheritor != null)
+                inheritor.DisplayToUI("Roger.");
+        }
     }
 
 
@@ -308,6 +330,7 @@ public class Drone : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        bool isTargetDead = false;
         if(isPatrol)
         {
             if(timerRotation >= 1)
@@ -342,6 +365,21 @@ public class Drone : MonoBehaviour
                     // while(Mathf.Abs(this.transform.position.y - this.ground.transform.localScale.y/2) >= 0.3f)
                     //     this.transform.position -= new Vector3(this.transform.position.x, this.transform.position.y - 0.5f, this.transform.position.z);
                 }
+            }
+            if(!isMissionComplete)
+            {
+                foreach(var robot in this.robotsSquad)
+                {
+                    if(robot.hasKilledTarget)
+                    {
+                        isTargetDead = true; //in order to write only once the message
+                    }
+                }
+                if(isTargetDead)
+                    {
+                        this.DisplayToUI("My squad has successfully brought down the target.");
+                        isMissionComplete = true;
+                    }
             }
         }
         timerRotation += Time.deltaTime;

@@ -11,6 +11,7 @@ public class Robot : MonoBehaviour
     public int layer_mask;
     public int layer_mask_wall;
     public float timer = 0f;
+    public bool hasKilledTarget;
 
     void FireLaser(float distance)
     {
@@ -47,7 +48,13 @@ public class Robot : MonoBehaviour
         {
             int totalDamage = (int) Mathf.Round((float) this.baseDamage * (1f/distance));
             this.targetScript.HP -= totalDamage;
+            this.targetScript.SetHealth(this.targetScript.HP);
             print("Robot inflicted " + totalDamage.ToString() + " of damage.");
+            if(targetScript.HP <= 0)
+            {
+                this.hasKilledTarget = true;
+                this.targetScript.speed = 0f;
+            }
         }
 
         if(targetScript.HP <= 0)
@@ -74,7 +81,9 @@ public class Robot : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        targetScript = target.GetComponent<Player>();
+        this.hasKilledTarget = false;
+        this.targetScript = target.GetComponent<Player>();
+        this.targetScript.SetHealth(targetScript.HP);
     }
 
     // Update is called once per frame
