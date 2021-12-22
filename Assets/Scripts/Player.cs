@@ -8,8 +8,6 @@ public class Player : MonoBehaviour
 {
     public float gravity = 9.81f;
     public float speed = 0.001f;
-    private float vertical;
-    private float horizontal;
     private Rigidbody rigidBodyComponent;
     public int HP;
     public float sizeBonusSphere;
@@ -36,8 +34,7 @@ public class Player : MonoBehaviour
     public GameObject successPanel;
     public float timerGameOver = 0f;
     public Slider slider;
-    public Color lowHealth;
-    public Color highHealth;
+    public GameObject[] walls;
 
 
     public void SetHealth(int currentValue)
@@ -62,14 +59,13 @@ public class Player : MonoBehaviour
         this.startPanel.SetActive(false);
         this.logPanel.SetActive(true); 
         this.slider.gameObject.SetActive(true);
-        this.SetHealth(this.HP);
         this.slider.maxValue = 300;
     }
 
     void Start()
     {
         this.startPanel = GameObject.Find("Start");
-        this.logPanel = GameObject.Find("Queue");
+        this.logPanel = GameObject.Find("Log");
         this.gameOverPanel = GameObject.Find("GameOver");
         this.successPanel = GameObject.Find("Success");
         this.startPanel.SetActive(true);
@@ -87,11 +83,18 @@ public class Player : MonoBehaviour
         float sizeGroundX = ground.transform.localScale.x;
         float sizeGroundY = ground.transform.localScale.y;
         float sizeGroundZ = ground.transform.localScale.z;
+
+        this.walls = GameObject.FindGameObjectsWithTag("Wall");
+        foreach(var wall in this.walls)
+        {
+            wall.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX/2 - wall.transform.localScale.z/2), (sizeGroundX/2 - wall.transform.localScale.z/2)), 2.65f, Random.Range(-1f * (sizeGroundZ/2 - wall.transform.localScale.z/2), (sizeGroundZ/2 - wall.transform.localScale.z/2)));
+        }
+
         this.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX-1)/2, (sizeGroundX-1)/2), 1.4f, Random.Range(-1f * (sizeGroundZ-1)/2, (sizeGroundZ-1)/2));
         this.finalDestination.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX-1)/2, (sizeGroundX-1)/2), sizeGroundY/2 + 0.01f, Random.Range(-1f * (sizeGroundZ-1)/2, (sizeGroundZ-1)/2));
         float distX = Mathf.Abs(this.finalDestination.transform.position.x - this.transform.position.x);
         float distZ = Mathf.Abs(this.finalDestination.transform.position.z - this.transform.position.z);
-        while(Mathf.Sqrt(distX * distX + distZ * distZ) < sizeGroundX/2.3) //to ensure that the green circle is not too close
+        while(Mathf.Sqrt(distX * distX + distZ * distZ) < sizeGroundX/1.9) //to ensure that the green circle is not too close
         {
             this.finalDestination.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX-1)/2, (sizeGroundX-1)/2), sizeGroundY/2 + 0.01f, Random.Range(-1f * (sizeGroundZ-1)/2, (sizeGroundZ-1)/2));
             distX = Mathf.Abs(this.finalDestination.transform.position.x - this.transform.position.x);
@@ -110,10 +113,9 @@ public class Player : MonoBehaviour
         }
         this.sizeBonusSphere = this.bonusSpheres[0].transform.localScale.x; 
 
-        
+        this.GetComponent<MeshRenderer>().enabled = false; //player is invisible in first person view
         this.mainCamera = Camera.main;
         CameraMove();
-
     }
 
     void GameOver()
@@ -137,9 +139,6 @@ public class Player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        this.vertical = Input.GetAxis("Vertical");
-        this.horizontal = Input.GetAxis("Horizontal");
-        Vector3 movement = new Vector3(horizontal, 0, vertical) * this.speed * Time.deltaTime;
         if(this.isCameraOnPlayer)
         {
             CameraMove();
@@ -183,7 +182,6 @@ public class Player : MonoBehaviour
             if(Input.GetKeyUp(KeyCode.RightArrow))
                 this.isKeyRightPressed = false;
         }
-            this.rigidBodyComponent.MovePosition(this.transform.position + movement);
         if(this.HP <= 0)
         {
             if(this.timerGameOver > 2.2f)
@@ -260,13 +258,15 @@ public class Player : MonoBehaviour
             
             if(this.isCameraOnPlayer)
             {
+                this.GetComponent<MeshRenderer>().enabled = true;
                 this.speed /= 2.5f;
                 this.isCameraOnPlayer = false;
-                this.mainCamera.transform.position = new Vector3(0f, 87f, 0f);
+                this.mainCamera.transform.position = new Vector3(0f, 113f, 0f);
                 this.mainCamera.transform.localRotation = Quaternion.Euler(90, 0f, 0f);
             }
             else
             {
+                this.GetComponent<MeshRenderer>().enabled = false;
                 this.isCameraOnPlayer = true;
                 this.speed *= 2.5f;
             }

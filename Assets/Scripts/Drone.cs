@@ -32,6 +32,7 @@ public class Drone : MonoBehaviour
     public List<string> tags;
     public List<Drone> drones = new List<Drone>();
     public Text log; //where the last communication is displayed
+    public Text screenChange;
     public bool hasNotifiedSquad;
     public bool isMissionComplete;
     //public CanvasGroup visibility;
@@ -60,15 +61,16 @@ public class Drone : MonoBehaviour
                         if(!playerScript.hasBeenDetected)
                         {
                             playerScript.hasBeenDetected = true;
-                            playerScript.isCameraOnPlayer = false;
-                            playerScript.mainCamera.transform.position = new Vector3(0f, 87f, 0f);
-                            playerScript.mainCamera.transform.localRotation = Quaternion.Euler(90, 0f, 0f);
-                            playerScript.speed /= 2.5f;
-                            playerScript.isKeyWPressed = false;
-                            playerScript.isKeyLeftPressed = false;
-                            playerScript.isKeyRightPressed = false;
-                            playerScript.isKeyDownPressed = false;
-                            playerScript.isKeyUpPressed = false;
+                            // playerScript.isCameraOnPlayer = false;
+                            // playerScript.mainCamera.transform.position = new Vector3(0f, 87f, 0f);
+                            // playerScript.mainCamera.transform.localRotation = Quaternion.Euler(90, 0f, 0f);
+                            // playerScript.speed /= 2.5f;
+                            // playerScript.isKeyWPressed = false;
+                            // playerScript.isKeyLeftPressed = false;
+                            // playerScript.isKeyRightPressed = false;
+                            // playerScript.isKeyDownPressed = false;
+                            // playerScript.isKeyUpPressed = false;
+                            this.DisplayToUI("You've been detected: you can now switch the view by pressing 'C'.", false);
                         }
                         this.hasDetectedPlayer = true;
                     }
@@ -92,10 +94,14 @@ public class Drone : MonoBehaviour
     }
 
 
-    public void DisplayToUI(string message)
+    public void DisplayToUI(string message, bool isDroneTalking)
     {
-        this.log.text += "[" + Time.time.ToString("N2") + "] - " + this.tag + ": " + message + "\n\n";
-        //print(message); //to debug for now
+        if(isDroneTalking)
+            this.log.text += "[" + Time.time.ToString("N2") + "] - " + this.tag + ": " + message + "\n\n";
+        else
+        {
+            this.screenChange.text = message + "\n\n";
+        }   
     }
 
 
@@ -111,25 +117,25 @@ public class Drone : MonoBehaviour
         this.isPatrol = true;
         this.hasInheritedZone = false;
         this.isMissionComplete = false;
-        allRobots = FindObjectsOfType(typeof(Robot)) as Robot[];
+        this.allRobots = FindObjectsOfType(typeof(Robot)) as Robot[];
         foreach (var robot in allRobots)
         {
             if(robot.gameObject.tag == this.tag)
                 robotsSquad.Add(robot);
         }
-        HQ = GameObject.Find(WhichHQ());
-        timerRotation = 0f;
-        ground = GameObject.Find("Ground");
-        center = GameObject.Find("Center");
-        groundSize = ground.GetComponent<Renderer>().bounds.size;
-        destroyable = 8;
-        layer_mask = 1 << destroyable; 
-        layer_mask_wall = 1 << 7;
+        this.HQ = GameObject.Find(WhichHQ());
+        this.timerRotation = 0f;
+        this.ground = GameObject.Find("Ground");
+        this.center = GameObject.Find("Center");
+        this.groundSize = ground.GetComponent<Renderer>().bounds.size;
+        this.destroyable = 8;
+        this.layer_mask = 1 << destroyable; 
+        this.layer_mask_wall = 1 << 7;
 
         this.tags = new List<string>{"Drone1", "Drone2", "Drone3", "Drone4"};
         foreach(var droneTag in this.tags)
         {
-            drones.Add(GameObject.Find(droneTag).GetComponent<Drone>());
+            this.drones.Add(GameObject.Find(droneTag).GetComponent<Drone>());
         }
         float valueMin;
         float valueMax;
@@ -162,6 +168,7 @@ public class Drone : MonoBehaviour
         this.zoneMaxX = valueMax * (float) (ground.transform.localScale.x / 2f);
         this.zoneMinZ = -1f * (float) (ground.transform.localScale.x / 2f);
         this.zoneMaxZ = (float) (ground.transform.localScale.x) / 2f;
+        
     }
 
 
@@ -281,12 +288,12 @@ public class Drone : MonoBehaviour
             buffer2 = "Wait, what am I exactly ?";
         if(!hasNotifiedSquad)
         {
-            DisplayToUI(buffer1 + buffer2);
+            DisplayToUI(buffer1 + buffer2, true);
             foreach(var drone in this.drones)
                 drone.tags.Remove(this.tag);
 
             if(inheritor != null)
-                inheritor.DisplayToUI("Roger.");
+                inheritor.DisplayToUI("Roger.", true);
         }
     }
 
@@ -316,7 +323,7 @@ public class Drone : MonoBehaviour
     public void RotationDroneRandom()
     {
         List<float> rotationList;
-        if((this.transform.forward == Vector3.forward || this.transform.forward == -1f * Vector3.forward) && this.hasInheritedZone) //drone is on the z axis
+        if((this.transform.forward == Vector3.forward || this.transform.forward == -1f * Vector3.forward) && !this.hasInheritedZone) //drone is on the z axis
         {
             rotationList = new List<float>{0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 90f, 180f, 270f}; //high probability of continuying forward (75%)
         }
@@ -333,13 +340,13 @@ public class Drone : MonoBehaviour
         bool isTargetDead = false;
         if(isPatrol)
         {
-            if(timerRotation >= 1)
+            if(this.timerRotation >= 2)
             {
                 RotationDroneRandom();
             }
             
             OnBorder(transform.position.x, transform.position.z); //if a drone is close to the border it turns back and the previous loop is reset 
-            transform.position += 0.20f * transform.forward;
+            transform.position += 0.30f * transform.forward;
             Vector3 current_pos = transform.position;
             for(float i = -5f ; i <= 5f ; i=i+0.5f)
             {
@@ -377,7 +384,7 @@ public class Drone : MonoBehaviour
                 }
                 if(isTargetDead)
                     {
-                        this.DisplayToUI("My squad has successfully brought down the target.");
+                        this.DisplayToUI("My squad has successfully brought down the target.", true);
                         isMissionComplete = true;
                     }
             }

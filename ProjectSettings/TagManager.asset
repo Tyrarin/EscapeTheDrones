@@ -9,6 +9,7 @@ TagManager:
   - Drone3
   - Drone4
   - Bonus
+  - Wall
   layers:
   - Default
   - TransparentFX
