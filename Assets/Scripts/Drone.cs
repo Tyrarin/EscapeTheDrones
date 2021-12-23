@@ -6,71 +6,62 @@ using UnityEngine.UI;
 
 public class Drone : MonoBehaviour
 {
-    public Robot[] allRobots;
-    public List<Robot> robotsSquad;
+    public Robot[] allRobots; //array that contains all robots
+    public List<Robot> robotsSquad; //list that contains all robots that have the same tag as the drone
     public GameObject target; //the player when they're detected
-    public int attack;
-    public int level;
-    public int speed;
-    private float range = 200f;
-    int destroyable; 
-    int layer_mask;
-    int layer_mask_wall;
-    public GameObject ground;
-    public GameObject center;
-    public Vector3 groundSize;
-    public float timerRotation;
-    public GameObject HQ;
-    public bool isPatrol;
-    public bool hasDetectedPlayer;
-    public bool hasInheritedZone;
-    public RaycastHit[] hits;
-    public float zoneMinX;
-    public float zoneMaxX;
-    public float zoneMinZ;
-    public float zoneMaxZ;
-    public List<string> tags;
-    public List<Drone> drones = new List<Drone>();
-    public Text log; //where the last communication is displayed
-    public Text screenChange;
-    public bool hasNotifiedSquad;
-    public bool isMissionComplete;
-    //public CanvasGroup visibility;
+    public float range = 200f; //max range of the detection raycasts
+    public float speed; 
+    public int detection; //the layer the player is in
+    public int layer_mask; //the layer the drone has to search to find the player
+    public int layer_mask_wall; //the layer the drone will send to its robots
+    public GameObject ground; //GameObject of the cube that hosts every other physical objets
+    public Vector3 groundSize; //size of the ground object
+    public float timerRotation; //timer for the next random rotation
+    public GameObject HQ; //headquarter of the squad where all the robots from the drone's squad are. The drone has to stay there to control its squad
+    public bool isPatrol; //boolean that is true if the drone is searching the player and false otherwise
+    public bool hasDetectedPlayer; //boolean that is set to true when the drone's detection raycasts have found the player
+    public bool hasInheritedZone; //boolean that is set to true only when the drone's patrol zone has been changed by another drone
+    public float zoneMinX; //minimum value the drone can take on the x axis
+    public float zoneMaxX; //maximum value the drone can take on the x axis
+    public float zoneMinZ; //minimum value the drone can take on the z axis
+    public float zoneMaxZ; //maximum value the drone can take on the z axis
+    public List<string> tags; //list that contains all the tags of the drones
+    public List<Drone> drones = new List<Drone>(); //list that contains all the drones (including the drone the script is attached to)
+    public Text log; //where all the communications are displayed
+    public Text screenChange; //notification that the player can change the view
+    public bool hasNotifiedSquad; //boolean that is true when a drone a detected the player and notified another drone (if there are any that is still patrolling)
+    public bool isMissionComplete; //boolean that is true when a robot from the drone's squad has brought down the player
+    public bool isTargetDead;
 
 
+    /*
+    Method that lets the drone emit raycasts to detect the player.
+    */
     void DetectionLaser()
     {
         Vector3 current_pos = transform.position;
-
-        for(float i = -5f ; i <= 5f ; i=i+0.5f)
+        //the detection area is a square 10m x 10m
+        for(float i = -5f ; i <= 5f ; i=i+0.5f) 
             {
                 for(float j = -5f ; j <= 5f ; j=j+0.5f)
                 {
-                                //Vector3 down = transform.TransformDirection(range * Vector3.down);
-                    var ray = new Ray(current_pos, transform.TransformDirection(new Vector3(i, this.transform.position.y * -1f, j)));
+                    var ray = new Ray(current_pos, transform.TransformDirection(new Vector3(i, this.transform.position.y * -1f, j))); //each ray has to begin from the drone's current position and has to be directed towards the ground in a way that the intersection is a square
                     
                     RaycastHit hit;
 
-                    if (Physics.Raycast(ray, out hit, range, layer_mask)) 
+                    if (Physics.Raycast(ray, out hit, range, layer_mask)) //the ray is thrown on the layer_mask with the range that was initialized in the attributes section. The value of the Raycast method is true if the raycast hit the and false otherwise
                     {
-                        this.target = hit.transform.gameObject;
-                        Player playerScript = target.GetComponent<Player>();
-                        this.isPatrol = false;
+                        this.target = hit.transform.gameObject; 
+                        Player playerScript = target.GetComponent<Player>(); //the Player script hence is accessible only if the raycast hit the player
+                        this.isPatrol = false; //the drone stops patrolling
+                        
                         if(!hasDetectedPlayer) //this way IntelligentRepartition is called only once
-                            IntelligentRepartition();
+                            IntelligentRepartition(); //the drone
+
                         if(!playerScript.hasBeenDetected)
                         {
                             playerScript.hasBeenDetected = true;
-                            // playerScript.isCameraOnPlayer = false;
-                            // playerScript.mainCamera.transform.position = new Vector3(0f, 87f, 0f);
-                            // playerScript.mainCamera.transform.localRotation = Quaternion.Euler(90, 0f, 0f);
-                            // playerScript.speed /= 2.5f;
-                            // playerScript.isKeyWPressed = false;
-                            // playerScript.isKeyLeftPressed = false;
-                            // playerScript.isKeyRightPressed = false;
-                            // playerScript.isKeyDownPressed = false;
-                            // playerScript.isKeyUpPressed = false;
-                            this.DisplayToUI("You've been detected: you can now switch the view by pressing 'C'.", false);
+                            this.screenChange.gameObject.SetActive(true);
                         }
                         this.hasDetectedPlayer = true;
                     }
@@ -80,6 +71,10 @@ public class Drone : MonoBehaviour
 
     }
 
+
+    /*
+    Method that is called in Start(). Lets the drone know which HQ it has to go to awake its squad depending on its tag
+    */
     public string WhichHQ()
     {
         if(this.tag == "Drone1")
@@ -93,52 +88,47 @@ public class Drone : MonoBehaviour
         return "error";
     }
 
-
-    public void DisplayToUI(string message, bool isDroneTalking)
+    
+    /*
+    Method that lets the drone write its communications on the log panel.
+    */
+    public void DisplayToUI(string message)
     {
-        if(isDroneTalking)
-            this.log.text += "[" + Time.time.ToString("N2") + "] - " + this.tag + ": " + message + "\n\n";
-        else
-        {
-            this.screenChange.text = message + "\n\n";
-        }   
+        this.log.text += "[" + Time.timeSinceLevelLoad.ToString("N2") + "] - " + this.tag + ": " + message + "\n\n";
     }
 
 
-    // Start is called before the first frame update
     void Start()
     {
-        // this.visibility = GetComponent<CanvasGroup>();
-        // this.visibility.alpha = 0;
-        // this.visibility.interactable = false;
-        // this.visibility.blocksRaycasts = false;
+        this.isTargetDead = false;
+        this.screenChange.gameObject.SetActive(false); //the notification that the view can be changed is not visible since the player isn't detected yet 
         this.hasNotifiedSquad = false;
         this.hasDetectedPlayer = false;
         this.isPatrol = true;
         this.hasInheritedZone = false;
         this.isMissionComplete = false;
         this.allRobots = FindObjectsOfType(typeof(Robot)) as Robot[];
+        this.speed = 0.30f;
         foreach (var robot in allRobots)
         {
             if(robot.gameObject.tag == this.tag)
-                robotsSquad.Add(robot);
+                robotsSquad.Add(robot); //only the robots from the drone's squad are added in the list
         }
-        this.HQ = GameObject.Find(WhichHQ());
+        this.HQ = GameObject.Find(WhichHQ()); //here WhichHQ() returns the name of the HQ specific the each drone
         this.timerRotation = 0f;
         this.ground = GameObject.Find("Ground");
-        this.center = GameObject.Find("Center");
-        this.groundSize = ground.GetComponent<Renderer>().bounds.size;
-        this.destroyable = 8;
-        this.layer_mask = 1 << destroyable; 
-        this.layer_mask_wall = 1 << 7;
+        this.groundSize = ground.transform.localScale;
+        this.detection = 8; //since the player is the layer 8
+        this.layer_mask = 1 << detection; //the mask is determined this way
+        this.layer_mask_wall = 1 << 7; //this mask is made for the robots squad in order to detect the walls which are in the layer 7
 
-        this.tags = new List<string>{"Drone1", "Drone2", "Drone3", "Drone4"};
+        this.tags = new List<string>{"Drone1", "Drone2", "Drone3", "Drone4"}; //every drone has its tag in this list at the beginning
         foreach(var droneTag in this.tags)
         {
-            this.drones.Add(GameObject.Find(droneTag).GetComponent<Drone>());
+            this.drones.Add(GameObject.Find(droneTag).GetComponent<Drone>()); //the tags list can also be used to find all the corresponding drone and put them in the drones list
         }
-        float valueMin;
-        float valueMax;
+        float valueMin; //factor that will be used to determine the limit bounds
+        float valueMax; //factor that will be used to determine the limit bounds
         switch(this.tag)
         {
             case "Drone1":
@@ -160,25 +150,29 @@ public class Drone : MonoBehaviour
             default:
                 valueMin = 0;
                 valueMax = 0;
-                print("wtf bro");
+                print("This isn't normal");
                 break;
 
         }
-        this.zoneMinX = valueMin * (float) (ground.transform.localScale.x / 2f);
-        this.zoneMaxX = valueMax * (float) (ground.transform.localScale.x / 2f);
-        this.zoneMinZ = -1f * (float) (ground.transform.localScale.x / 2f);
-        this.zoneMaxZ = (float) (ground.transform.localScale.x) / 2f;
+        this.zoneMinX = valueMin * (ground.transform.localScale.x / 2f);
+        this.zoneMaxX = valueMax * (ground.transform.localScale.x / 2f);
+        this.zoneMinZ = -1f * (ground.transform.localScale.x / 2f);
+        this.zoneMaxZ = (ground.transform.localScale.x) / 2f;
         
     }
 
 
+    /*
+    Method that is called when a drone detects the player. Since it has to go the its HQ, it asks another drone to patrol in its zone too.
+    */
     public void IntelligentRepartition()
     {
         string buffer1 = "Target has been detected. I have to lead my robots squad. ";
         string buffer2;
-        Drone inheritor = null;
-        if(this.tag == "Drone1")
+        Drone inheritor = null; //the drone that will have its patrol zone increased by another drone
+        if(this.tag == "Drone1") //the drone that has to give away its patrol zone to another in order to awake its squad
         {
+            //all these verifications are in priority order: if drone 1 has to give its zone it will prioritize drone 2, or drone 3 if drone 2 isn't patrolling, or drone 4 if drones 2 and 3 can't patrol, or nothing if there's no drone patrolling left
             if(this.tags.Contains("Drone2"))
             {
                 this.drones[1].zoneMinX = this.zoneMinX;
@@ -201,7 +195,7 @@ public class Drone : MonoBehaviour
                 inheritor = this.drones[3];
             }
             else
-                buffer2 = "No drone found to inherit my patrol zone.";    
+                buffer2 = "No drone found to inherit my patrol zone."; //there's neither drone 2, drone 3 or drone 4 to retrieve drone 1's patrol zone   
         }
         
         else if(this.tag == "Drone2")
@@ -288,16 +282,23 @@ public class Drone : MonoBehaviour
             buffer2 = "Wait, what am I exactly ?";
         if(!hasNotifiedSquad)
         {
-            DisplayToUI(buffer1 + buffer2, true);
+            DisplayToUI(buffer1 + buffer2);
             foreach(var drone in this.drones)
                 drone.tags.Remove(this.tag);
 
             if(inheritor != null)
-                inheritor.DisplayToUI("Roger.", true);
+            {
+                inheritor.DisplayToUI("Roger.");
+                inheritor.speed *= 1.5f; //since it has to cover a larger patrol zone it has its speed increased by 50%
+            }
         }
     }
 
 
+    /*
+    Method that is called when a drone arrives to its headquart after having given its patrol zone to another drone. 
+    It awakes every robot in its list of robots and gives the player layer and the walls layer to each of them.
+    */
     public void AwakeRobots()
     {
         foreach (var robot in robotsSquad)
@@ -308,6 +309,11 @@ public class Drone : MonoBehaviour
         }
     }
 
+
+    /*
+    Method that is called every iteration of the Update() method. It checks if the drone is too close the the bounds of its zone.
+    If it is, the drone turns 180 degrees and continues in the opposite direction.
+    */
     public void OnBorder(float posX, float posZ)
     {
         float diffXMin = Mathf.Abs(posX - this.zoneMinX);
@@ -316,10 +322,15 @@ public class Drone : MonoBehaviour
         if(diffXMin < 1f || diffXMax < 1f || diffZ < 1f)
         {    
             transform.Rotate(0, 180, 0);
-            //this.timePreviousRotation = (int) Mathf.Round(Time.time);
         }
     }
 
+
+    /*
+    Method that is called everytime timerRotation is greater or equal to 5f. It means that it's called every 5 seconds.
+    It randomly select a new direction are rotates the drone accordingly before resetting timeRotation to 0.
+    If the drone is moving along the z axis and has not yet inherited another drone's patrol zone, a rotation of 0 degree (i.e no rotation) has a lot more chance of being selected.
+    */
     public void RotationDroneRandom()
     {
         List<float> rotationList;
@@ -334,10 +345,11 @@ public class Drone : MonoBehaviour
         transform.Rotate(0, rotationList[selectIndex], 0);
         this.timerRotation = 0f;
     }
-    // Update is called once per frame
+    
+
     void Update()
     {
-        bool isTargetDead = false;
+        
         if(isPatrol)
         {
             if(this.timerRotation >= 2)
@@ -346,7 +358,7 @@ public class Drone : MonoBehaviour
             }
             
             OnBorder(transform.position.x, transform.position.z); //if a drone is close to the border it turns back and the previous loop is reset 
-            transform.position += 0.30f * transform.forward;
+            transform.position += this.speed * transform.forward;
             Vector3 current_pos = transform.position;
             for(float i = -5f ; i <= 5f ; i=i+0.5f)
             {
@@ -379,17 +391,17 @@ public class Drone : MonoBehaviour
                 {
                     if(robot.hasKilledTarget)
                     {
-                        isTargetDead = true; //in order to write only once the message
+                        isTargetDead = true; //so that a drone writes only once the message
                     }
                 }
                 if(isTargetDead)
                     {
-                        this.DisplayToUI("My squad has successfully brought down the target.", true);
+                        this.DisplayToUI("My squad has successfully brought down the target.");
                         isMissionComplete = true;
                     }
             }
         }
-        timerRotation += Time.deltaTime;
+        timerRotation += Time.deltaTime; //the timer is incremented every at every iteration of Update() 
     }
 
 

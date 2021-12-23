@@ -4,54 +4,37 @@ using UnityEngine;
 
 public class Robot : MonoBehaviour
 {
-    public GameObject target;
-    public Player targetScript;
-    public bool isActive = false;
-    public int baseDamage = 600;
-    public int layer_mask;
-    public int layer_mask_wall;
-    public float timer = 0f;
-    public bool hasKilledTarget;
+    public GameObject target; //GameObject of the player. Already in each robots' inspector
+    public Player targetScript; //script of the target
+    public bool isActive = false; //boolean that is true if the robot is active (awoken by its drone)
+    public int baseDamage = 600; //damages calculations are based on this number
+    public int layer_mask; //layer in which is the player
+    public int layer_mask_wall; //layer in which are all the walls
+    public float timer = 0f; //timer determining the frequency of the raycast shots
+    public bool hasKilledTarget; //true if a robot make damages on the player while the latter is bellow 0HP
 
+
+    /*
+    Method that lets a robot throw a raycast with infinite range. It the way is clear between the robot and the player (no wall in between) it damages the player.
+    The damages inflicted are inversely proportionnal to the distance between the robots and the player: the more the robots are close, the more damages they make.
+    */
     void FireLaser(float distance)
     {
-        //transform.TransformDirection(new Vector3(-0.6f, 0f, 0.4f))
         Vector3 current_pos = transform.position;        
         var ray = new Ray(current_pos, target.transform.position - this.transform.position);
         RaycastHit hitTarget;
         RaycastHit hitWall;
         
-        // if (Physics.Raycast(ray, out hitTarget, Mathf.Infinity, layer_mask) && Physics.Raycast(ray, out hitWall, Mathf.Infinity, layer_mask_wall)) 
-        // {
-        //     float dX1 = Mathf.Abs(this.transform.position.x - hitWall.transform.position.x);
-        //     float dZ1 = Mathf.Abs(this.transform.position.z - hitWall.transform.position.z);
-        //     int distanceToWall = (int) Mathf.Round(Mathf.Sqrt(dX1 * dX1 + dZ1 * dZ1));
-        //     float dX2 = Mathf.Abs(this.transform.position.x - hitTarget.transform.position.x);
-        //     float dZ2 = Mathf.Abs(this.transform.position.z - hitTarget.transform.position.z);
-        //     int distanceToTarget = (int) Mathf.Round(Mathf.Sqrt(dX2 * dX2 + dZ2 * dZ2));
-        //     int timeToDestroyWall = (int) Mathf.Round(Time.time);
-        //     if(distanceToWall < distanceToTarget)
-        //     {
-        //         float timer = 0;
-        //         if(timer > 5)
-        //             Destroy(hitWall.transform.gameObject);
-        //         else
-        //         {
-        //             timer += Time.deltaTime;
-        //             print("waiting");
-        //         }
-        //     }
-            
-        // }
         
-        if (Physics.Raycast(ray, out hitTarget, Mathf.Infinity, layer_mask) && IsThereAWallBetween(Physics.Raycast(ray, out hitWall, Mathf.Infinity, layer_mask_wall), hitWall, hitTarget)) 
+        if (Physics.Raycast(ray, out hitTarget, Mathf.Infinity, layer_mask) && IsThereAWallInBetween(Physics.Raycast(ray, out hitWall, Mathf.Infinity, layer_mask_wall), hitWall, hitTarget, distance)) 
         {
-            int totalDamage = (int) Mathf.Round((float) this.baseDamage * (1f/distance));
+            int totalDamage = (int) ( Mathf.Round( (float) this.baseDamage * (1f/distance) ) );
             this.targetScript.HP -= totalDamage;
             this.targetScript.SetHealth(this.targetScript.HP);
             print("Robot inflicted " + totalDamage.ToString() + " of damage.");
-            if(targetScript.HP <= 0)
+            if(targetScript.HP <= 0 && !targetScript.isPlayerDead)
             {
+                this.targetScript.isPlayerDead = true; //this way only one squad can take credit of having killed the player
                 this.hasKilledTarget = true;
                 this.targetScript.speed = 0f;
             }
@@ -64,56 +47,50 @@ public class Robot : MonoBehaviour
         
     }
 
-    public bool IsThereAWallBetween(bool raycast, RaycastHit hitWall, RaycastHit hitTarget)
+    public bool IsThereAWallInBetween(bool raycast, RaycastHit hitWall, RaycastHit hitTarget, float distTarget)
     {
-        if(!raycast)
+        if(!raycast) //a wall has not been hit by the raycast so true is returned
             return true;
-        //else the raycast got both the target and a wall
+        //else the raycast got both the target and a wall so their distance to the robots is compared
 
         GameObject wall = hitWall.transform.gameObject;
         float distXWall = Mathf.Abs(wall.transform.position.x - this.transform.position.x);
-        float distXTarget = Mathf.Abs(target.transform.position.x - this.transform.position.x);
-        return distXTarget < distXWall ? true : false;
+        float distZWall = Mathf.Abs(wall.transform.position.z - this.transform.position.z);
+        float distWall = Mathf.Sqrt(distZWall * distZWall + distXWall * distXWall);
+
+        return distTarget < distWall ? true : false;
             
         
     }
 
-    // Start is called before the first frame update
+
     void Start()
     {
         this.hasKilledTarget = false;
         this.targetScript = target.GetComponent<Player>();
-        this.targetScript.SetHealth(targetScript.HP);
     }
 
-    // Update is called once per frame
+
     void Update()
     {
         if(this.isActive)
         {
             float dX = Mathf.Abs(this.transform.position.x - target.transform.position.x);
             float dZ = Mathf.Abs(this.transform.position.z - target.transform.position.z);
-            int distance = (int) Mathf.Round(Mathf.Sqrt(dX * dX + dZ * dZ));
-            this.transform.position = Vector3.MoveTowards(transform.position, this.target.transform.position, 3f * Time.deltaTime);
-            var lookRotation = Quaternion.LookRotation (new Vector3(target.transform.position.x, 0, target.transform.position.z));
-            this.transform.rotation = Quaternion.Slerp (this.transform.rotation, lookRotation, 3f * Time.deltaTime);
+            float distance = Mathf.Round(Mathf.Sqrt(dX * dX + dZ * dZ)); //every iteration of Update() the distance between the robot and the player is updated
+            this.transform.position = Vector3.MoveTowards(transform.position, this.target.transform.position, 3f * Time.deltaTime); //the robot moves towards the player in each iteration of Update()
             
-            //print(distance);
             if(this.timer > 2)
             {
                 FireLaser(distance);
                 
                 this.timer = 0;
-                // Destroy(hitWall.transform.gameObject);
             }
             else
             {
-                timer += Time.deltaTime;
-                //print("waiting");
+                timer += Time.deltaTime; //increments the timer
             }
             Debug.DrawRay(this.transform.position, target.transform.position - this.transform.position, Color.red);
-            
-           // FireLaser(distance);
         }
     }
 }
