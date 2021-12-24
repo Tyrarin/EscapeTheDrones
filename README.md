@@ -103,6 +103,8 @@ Lorsque le joueur atteint une vitesse particulièrement élevée (à partir de 2
 Enfin, il y a un dernier bug assez rare et très difficile à reproduire. Parfois, un drone s'arrête à l'une des limites de sa zone de patrouille et ne se déplace plus, tout en continuant d'effectuer des rotations aléatoires. Lorsque cela arrive, il n'est pas capable de se dégager de cette situation et il faut alors passer sous ses raycasts pour qu'il se déplace comme si de rien n'était à son quartier général. 
 Dans des cas encore plus rares, un drone peut se dégager lui-même de sa situation puis de reprendre ses fonctions normalement.
 
+Nota Bene : l'exécutable porte le nom de `Turn-based fight.exe` car c'était à l'origine le nom du projet avant que le concept d'EscapeTheDrones ne soit trouvé. 
+
 ## Sources
 
 - https://github.com/tdeporte/Unity_FPS : inspiration du dépot git de Tom et Axel pour mettre en place dans ce projet les raycasts ainsi que la vue en FPS.
