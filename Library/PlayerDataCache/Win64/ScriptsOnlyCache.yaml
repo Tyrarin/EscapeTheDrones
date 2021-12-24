@@ -540,5 +540,5 @@ ScriptsOnlyBuild:
   platform: 19
   scenePathNames:
   - Assets/Scenes/MainGame.unity
-  playerPath: C:/Users/Lucas Monlezun/Pictures/SAVE/fac/aspic/dste/unity/EscapeTheDrones/Build/Turn-based
+  playerPath: C:/Users/Lucas Monlezun/Pictures/SAVE/fac/aspic/dste/unity/buil-escapeTheDrones/Turn-based
     fight.exe
