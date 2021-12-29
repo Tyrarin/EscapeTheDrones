@@ -17,7 +17,7 @@ public class Drone : MonoBehaviour
     public GameObject ground; //GameObject of the cube that hosts every other physical objets
     public Vector3 groundSize; //size of the ground object
     public float timerRotation; //timer for the next random rotation
-    public GameObject HQ; //headquarter of the squad where all the robots from the drone's squad are. The drone has to stay there to control its squad
+    public Vector3 HQ; //headquarter of the squad where all the robots from the drone's squad are. The drone has to stay there to control its squad
     public bool isPatrol; //boolean that is true if the drone is searching the player and false otherwise
     public bool hasDetectedPlayer; //boolean that is set to true when the drone's detection raycasts have found the player
     public bool hasInheritedZone; //boolean that is set to true only when the drone's patrol zone has been changed by another drone
@@ -25,13 +25,18 @@ public class Drone : MonoBehaviour
     public float zoneMaxX; //maximum value the drone can take on the x axis
     public float zoneMinZ; //minimum value the drone can take on the z axis
     public float zoneMaxZ; //maximum value the drone can take on the z axis
-    public List<string> tags; //list that contains all the tags of the drones
+    public List<string> tags = new List<string>(); //list that contains all the tags of the drones
     public List<Drone> drones = new List<Drone>(); //list that contains all the drones (including the drone the script is attached to)
     public Text log; //where all the communications are displayed
     public Text screenChange; //notification that the player can change the view
     public bool hasNotifiedSquad; //boolean that is true when a drone a detected the player and notified another drone (if there are any that is still patrolling)
     public bool isMissionComplete; //boolean that is true when a robot from the drone's squad has brought down the player
     public bool isTargetDead;
+    public bool toFixPosition;
+    public Vector3 lastPosition;
+    public int nbIterationsToRecoverPosition;
+    public float timerRecover;
+    public bool isAligned;
 
 
     /*
@@ -56,7 +61,7 @@ public class Drone : MonoBehaviour
                         this.isPatrol = false; //the drone stops patrolling
                         
                         if(!hasDetectedPlayer) //this way IntelligentRepartition is called only once
-                            IntelligentRepartition(); //the drone
+                            AdvancedRepartition(); //the drone
 
                         if(!playerScript.hasBeenDetected)
                         {
@@ -71,35 +76,28 @@ public class Drone : MonoBehaviour
 
     }
 
-
-    /*
-    Method that is called in Start(). Lets the drone know which HQ it has to go to awake its squad depending on its tag
-    */
-    public string WhichHQ()
-    {
-        if(this.tag == "Drone1")
-            return "HQSquad1";
-        if(this.tag == "Drone2")
-            return "HQSquad2";
-        if(this.tag == "Drone3")
-            return "HQSquad3";
-        if(this.tag == "Drone4")
-            return "HQSquad4";
-        return "error";
-    }
-
     
     /*
-    Method that lets the drone write its communications on the log panel.
+    Method that lets the drone write its communications on the log panel. 
+    The second parameter, by default 2, is the number of lines to be skipped after the message is sent on log.
     */
-    public void DisplayToUI(string message)
+    public void DisplayToUI(string message, int jumpLines = 2)
     {
-        this.log.text += "[" + Time.timeSinceLevelLoad.ToString("N2") + "] - " + this.tag + ": " + message + "\n\n";
+        string buffer = "";
+        for(int i = 0 ; i < jumpLines ; i++)
+            buffer += "\n";
+        
+        this.log.text += "[" + Time.timeSinceLevelLoad.ToString("N2") + "] - " + this.tag + ": " + message + buffer;
     }
 
 
     void Start()
     {
+        this.isAligned = false;
+        this.timerRecover = 0f;
+        this.nbIterationsToRecoverPosition = 0;
+        this.lastPosition = this.transform.position;
+        this.toFixPosition = false;
         this.isTargetDead = false;
         this.screenChange.gameObject.SetActive(false); //the notification that the view can be changed is not visible since the player isn't detected yet 
         this.hasNotifiedSquad = false;
@@ -108,13 +106,20 @@ public class Drone : MonoBehaviour
         this.hasInheritedZone = false;
         this.isMissionComplete = false;
         this.allRobots = FindObjectsOfType(typeof(Robot)) as Robot[];
-        this.speed = 0.30f;
-        foreach (var robot in allRobots)
+        this.speed = 20f;
+        float posXRobotsSum = 0f;
+        float posZRobotsSum = 0f;
+        foreach (Robot robot in FindObjectsOfType(typeof(Robot)) as Robot[])
         {
-            if(robot.gameObject.tag == this.tag)
-                robotsSquad.Add(robot); //only the robots from the drone's squad are added in the list
+            if(robot.tag == this.tag)
+            {
+                this.robotsSquad.Add(robot); //only the robots from the drone's squad are added in the list
+                posXRobotsSum += robot.gameObject.transform.position.x;
+                posZRobotsSum += robot.gameObject.transform.position.z;
+            }
         }
-        this.HQ = GameObject.Find(WhichHQ()); //here WhichHQ() returns the name of the HQ specific the each drone
+        this.HQ = new Vector3((posXRobotsSum / this.robotsSquad.Count), this.gameObject.transform.position.y, (posZRobotsSum / this.robotsSquad.Count)); //the coordinates of the headquarters are just the average of the squad coordinates
+        
         this.timerRotation = 0f;
         this.ground = GameObject.Find("Ground");
         this.groundSize = ground.transform.localScale;
@@ -122,176 +127,86 @@ public class Drone : MonoBehaviour
         this.layer_mask = 1 << detection; //the mask is determined this way
         this.layer_mask_wall = 1 << 7; //this mask is made for the robots squad in order to detect the walls which are in the layer 7
 
-        this.tags = new List<string>{"Drone1", "Drone2", "Drone3", "Drone4"}; //every drone has its tag in this list at the beginning
-        foreach(var droneTag in this.tags)
+        foreach(Drone drone in FindObjectsOfType(typeof(Drone)) as Drone[])
         {
-            this.drones.Add(GameObject.Find(droneTag).GetComponent<Drone>()); //the tags list can also be used to find all the corresponding drone and put them in the drones list
+            if(!this.drones.Contains(drone) && !this.tags.Contains(drone.tag))
+            {
+                this.tags.Add(drone.tag);
+                this.drones.Add(drone);
+            }
         }
-        float valueMin; //factor that will be used to determine the limit bounds
-        float valueMax; //factor that will be used to determine the limit bounds
-        switch(this.tag)
-        {
-            case "Drone1":
-                valueMin = -1f;
-                valueMax = -0.5f;
-                break;
-            case "Drone2":
-                valueMin = -0.5f;
-                valueMax = 0f;
-                break;
-            case "Drone3":
-                valueMin = 0f;
-                valueMax = 0.5f;
-                break;
-            case "Drone4":
-                valueMin = 0.5f;
-                valueMax = 1f;
-                break;
-            default:
-                valueMin = 0;
-                valueMax = 0;
-                print("This isn't normal");
-                break;
 
+
+        InitZoneLimit();
+
+        foreach(Drone drone in this.drones)
+        {
+            drone.transform.position = new Vector3(Random.Range(drone.zoneMinX + 1f, drone.zoneMaxX - 1f), drone.gameObject.transform.position.y, Random.Range(drone.zoneMinZ + 1, drone.zoneMaxZ - 1f));
         }
-        this.zoneMinX = valueMin * (ground.transform.localScale.x / 2f);
-        this.zoneMaxX = valueMax * (ground.transform.localScale.x / 2f);
-        this.zoneMinZ = -1f * (ground.transform.localScale.x / 2f);
-        this.zoneMaxZ = (ground.transform.localScale.x) / 2f;
         
     }
 
 
     /*
-    Method that is called when a drone detects the player. Since it has to go the its HQ, it asks another drone to patrol in its zone too.
+    Method that is called when the different zones of the map have to be shared equally among the drones currently patrolling.
     */
-    public void IntelligentRepartition()
+    public void InitZoneLimit()
     {
-        string buffer1 = "Target has been detected. I have to lead my robots squad. ";
-        string buffer2;
-        Drone inheritor = null; //the drone that will have its patrol zone increased by another drone
-        if(this.tag == "Drone1") //the drone that has to give away its patrol zone to another in order to awake its squad
+        float size = - 1f * ground.transform.localScale.x/2;
+        float cpt = ground.transform.localScale.x / this.drones.Count; //it will be the increment for the borders 
+        for(int i = 0 ; i < this.drones.Count ; i++) //just some C nostalgy
         {
-            //all these verifications are in priority order: if drone 1 has to give its zone it will prioritize drone 2, or drone 3 if drone 2 isn't patrolling, or drone 4 if drones 2 and 3 can't patrol, or nothing if there's no drone patrolling left
-            if(this.tags.Contains("Drone2"))
+            this.drones[i].zoneMinX = size;
+            size += cpt;
+            this.drones[i].zoneMaxX = size; //this way the size of the border (on the x axis) for each drone is ground.tranform.localScale.x / this.drones.Count 
+            this.drones[i].zoneMinZ = -1f * ground.transform.localScale.z / 2f;
+            this.drones[i].zoneMaxZ = ground.transform.localScale.z / 2f;
+            if(this.drones[i].transform.position.x < this.drones[i].zoneMinX || this.drones[i].transform.position.x > this.drones[i].zoneMaxX) // something went wrong, specifically a drone was already near its own bounds when InitZoneLimit() was called
             {
-                this.drones[1].zoneMinX = this.zoneMinX;
-                this.drones[1].hasInheritedZone = true;
-                buffer2 = "Drone2, keep watch in my stead.";
-                inheritor = this.drones[1];
+                this.drones[i].toFixPosition = true; //something went wrong, specifically a drone was already near its own bounds when InitZoneLimit() was called
+                this.drones[i].isPatrol = false; //temporarily
             }
-            else if(this.tags.Contains("Drone3"))
-            {    
-                this.drones[2].zoneMinX = this.zoneMinX;
-                this.drones[2].hasInheritedZone = true;
-                buffer2 = "Drone3, keep watch in my stead.";
-                inheritor = this.drones[2];
-            }
-            else if(this.tags.Contains("Drone4"))
-            {    
-                this.drones[3].zoneMinX = this.zoneMinX;
-                this.drones[3].hasInheritedZone = true;
-                buffer2 = "Drone4, keep watch in my stead.";
-                inheritor = this.drones[3];
-            }
-            else
-                buffer2 = "No drone found to inherit my patrol zone."; //there's neither drone 2, drone 3 or drone 4 to retrieve drone 1's patrol zone   
-        }
-        
-        else if(this.tag == "Drone2")
-        {
-            if(this.tags.Contains("Drone1"))
-            {
-                this.drones[0].zoneMaxX = this.zoneMaxX;
-                this.drones[0].hasInheritedZone = true;
-                buffer2 = "Drone1, keep watch in my stead.";
-                inheritor = this.drones[0];
-            }
-            else if(this.tags.Contains("Drone3"))
-            {
-                this.drones[2].zoneMinX = this.zoneMinX;
-                this.drones[2].hasInheritedZone = true;
-                buffer2 = "Drone3, keep watch in my stead.";
-                inheritor = this.drones[2];
-            }
-            else if(this.tags.Contains("Drone4"))
-            {    
-                this.drones[3].zoneMinX = this.zoneMinX;
-                this.drones[3].hasInheritedZone = true;
-                buffer2 = "Drone4, keep watch in my stead.";
-                inheritor = this.drones[3];
-            }
-            else
-                buffer2 = "No drone found to inherit my patrol zone.";
         }
 
-        else if(this.tag == "Drone3")
-        {
-            if(this.tags.Contains("Drone4"))
-            {
-                this.drones[3].zoneMinX = this.zoneMinX;
-                this.drones[3].hasInheritedZone = true;
-                buffer2 = "Drone4, keep watch in my stead.";
-                inheritor = this.drones[3];
-            }
-            else if(this.tags.Contains("Drone2"))
-            {
-                this.drones[1].zoneMaxX = this.zoneMaxX;
-                this.drones[1].hasInheritedZone = true;
-                buffer2 = "Drone2, keep watch in my stead.";
-                inheritor = this.drones[1];
-            }
-            else if(this.tags.Contains("Drone1"))
-            {    
-                this.drones[0].zoneMaxX = this.zoneMaxX;
-                this.drones[0].hasInheritedZone = true;
-                buffer2 = "Drone1, keep watch in my stead.";
-                inheritor = this.drones[0];
-            }
-            else
-                buffer2 = "No drone found to inherit my patrol zone.";
-        }
+    }
 
-        else if(this.tag == "Drone4")
-        {
-            if(this.tags.Contains("Drone3"))
-            {
-                this.drones[2].zoneMaxX = this.zoneMaxX;
-                this.drones[2].hasInheritedZone = true;
-                buffer2 = "Drone3, keep watch in my stead.";
-                inheritor = this.drones[2];
-            }
-            else if(this.tags.Contains("Drone2"))
-            {    
-                this.drones[1].zoneMaxX = this.zoneMaxX;
-                this.drones[1].hasInheritedZone = true;
-                buffer2 = "Drone2, keep watch in my stead.";
-                inheritor = this.drones[1];
-            }
-            else if(this.tags.Contains("Drone1"))
-            {
-                this.drones[0].zoneMaxX = this.zoneMaxX;
-                this.drones[0].hasInheritedZone = true;
-                buffer2 = "Drone1, keep watch in my stead.";
-                inheritor = this.drones[0];
-            }
-            else
-                buffer2 = "No drone found to inherit my patrol zone.";
-        }
-        else
-            buffer2 = "Wait, what am I exactly ?";
-        if(!hasNotifiedSquad)
+
+    /*
+    Method that is called when a drone has detected the player. It then actualizes the lists, calls InitZoneLimit() and make the drones communicate.
+    */
+    public void AdvancedRepartition()
+    {
+        string buffer1 = "Target has been detected. I have to lead my robots squad.";
+        string buffer2 = "";
+        if(this.drones.Count == 1)
+            buffer2 = " Whiskey Tango Foxtrot am I the only one patrolling?";
+        List<string> droneResponse = new List<string>{"Roger.", "Copy that.", "Roger that.", "Transmission received.", "Got it.", "We got you.", "Then we will share your patrol zone."}; //to bring more variety
+    
+        if(!hasNotifiedSquad) //without this boolean sometimes a drone can call the method twice in a row, thus spamming the log panel
         {
             DisplayToUI(buffer1 + buffer2);
+            int cpt = 0;
             foreach(var drone in this.drones)
-                drone.tags.Remove(this.tag);
-
-            if(inheritor != null)
             {
-                inheritor.DisplayToUI("Roger.");
-                inheritor.speed *= 1.5f; //since it has to cover a larger patrol zone it has its speed increased by 50%
+                if(drone.tag == this.tag)
+                    continue;
+                drone.tags.Remove(this.tag);
+                drone.drones.Remove(this);
+
+                string response = droneResponse[Random.Range(0, droneResponse.Count)];
+                if(cpt == this.drones.Count - 2) //since cpt in not incremented when it's the drone which is giving its patrol zone, it will be this.drones.Count - 2 for the last drone about to send its response
+                    drone.DisplayToUI(response); //the last drone that answers will skip 2 lines instead of 1 in the logPanel
+                else
+                    drone.DisplayToUI(response, 1);
+
+                droneResponse.Remove(response); //so that each drone gives a different answer.
+                cpt++;
             }
+            this.drones.Remove(this);
+            this.InitZoneLimit();
+
         }
+    
     }
 
 
@@ -312,31 +227,34 @@ public class Drone : MonoBehaviour
 
     /*
     Method that is called every iteration of the Update() method. It checks if the drone is too close the the bounds of its zone.
-    If it is, the drone turns 180 degrees and continues in the opposite direction.
+    If it is, the drone does a rotation in a random direction.
     */
     public void OnBorder(float posX, float posZ)
     {
-        float diffXMin = Mathf.Abs(posX - this.zoneMinX);
-        float diffXMax = Mathf.Abs(this.zoneMaxX - posX);
-        float diffZ = Mathf.Abs(Mathf.Abs(posZ) - groundSize.z/2f); 
-        if(diffXMin < 1f || diffXMax < 1f || diffZ < 1f)
-        {    
-            transform.Rotate(0, 180, 0);
+
+        posX = Mathf.Clamp(posX, this.zoneMinX + 3f, this.zoneMaxX - 3f);
+        posZ = Mathf.Clamp(posZ, this.zoneMinZ + 3f, this.zoneMaxZ - 3f); 
+        if((posX != this.transform.position.x || posZ != this.transform.position.z) && !this.toFixPosition)
+        {
+            this.transform.position = new Vector3(posX, this.transform.position.y, posZ); //if a drone was within its bounds the position stays the same and if it was outside its zone its position if modified 
+            RotationDroneRandom(false); //25% of continuying forward (in which case RotationDroneRandom will be called again) instead of 50%
         }
+
     }
 
 
     /*
     Method that is called everytime timerRotation is greater or equal to 5f. It means that it's called every 5 seconds.
     It randomly select a new direction are rotates the drone accordingly before resetting timeRotation to 0.
-    If the drone is moving along the z axis and has not yet inherited another drone's patrol zone, a rotation of 0 degree (i.e no rotation) has a lot more chance of being selected.
+    If the drone is moving along the z axis and has not yet inherited another drone's patrol zone, a rotation of 0 degree (i.e no rotation) has a more chance of being selected.
+    The parameter should be true if the method was called in Update() when the timer reaches 2 secondes and false if it's called by OnBorder().
     */
-    public void RotationDroneRandom()
+    public void RotationDroneRandom(bool isCalledByTimer)
     {
         List<float> rotationList;
-        if((this.transform.forward == Vector3.forward || this.transform.forward == -1f * Vector3.forward) && !this.hasInheritedZone) //drone is on the z axis
+        if(((this.transform.forward == Vector3.forward || this.transform.forward == -1f * Vector3.forward) && isCalledByTimer)) //drone is on the z axis
         {
-            rotationList = new List<float>{0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 90f, 180f, 270f}; //high probability of continuying forward (75%)
+            rotationList = new List<float>{0f, 0f, 0f, 90f, 180f, 270f}; //there's a good chance of continuying forward (50%)
         }
         else
             rotationList = new List<float>{0f, 90f, 180f, 270f};
@@ -349,16 +267,31 @@ public class Drone : MonoBehaviour
 
     void Update()
     {
-        
+
+        if(this.toFixPosition) //InitLimitZone made a mistake (the drone was near one of its bounds on the x axis just before the limit bounds changed)
+        {
+
+            if(this.transform.position.x < this.zoneMinX || this.transform.position.x > this.zoneMaxX)
+            {
+                this.transform.position = Vector3.MoveTowards(this.transform.position, new Vector3(0.5f * (this.zoneMinX + this.zoneMaxX), this.transform.position.y, this.transform.position.z), 20f * Time.deltaTime);
+            }
+                        
+            else
+            {
+                this.isPatrol = true;
+                this.toFixPosition = false;
+            }
+        }
         if(isPatrol)
         {
             if(this.timerRotation >= 2)
             {
-                RotationDroneRandom();
+                RotationDroneRandom(true);
             }
             
             OnBorder(transform.position.x, transform.position.z); //if a drone is close to the border it turns back and the previous loop is reset 
-            transform.position += this.speed * transform.forward;
+            this.transform.position += this.transform.forward * this.speed * Time.deltaTime;
+            
             Vector3 current_pos = transform.position;
             for(float i = -5f ; i <= 5f ; i=i+0.5f)
             {
@@ -372,17 +305,15 @@ public class Drone : MonoBehaviour
         }
         else if(hasDetectedPlayer)
         {
-            transform.position = Vector3.MoveTowards(transform.position, HQ.transform.position, 20f * Time.deltaTime);
-            float dX = Mathf.Abs(this.transform.position.x - HQ.transform.position.x);
-            float dZ = Mathf.Abs(this.transform.position.z - HQ.transform.position.z);
+            transform.position = Vector3.MoveTowards(transform.position, this.HQ, 20f * Time.deltaTime);
+            float dX = Mathf.Abs(this.transform.position.x - HQ.x);
+            float dZ = Mathf.Abs(this.transform.position.z - HQ.z);
             if(!this.hasNotifiedSquad)
             {
                 if(dX <= 0.1f && dZ <= 0.1f)
                 {
                     AwakeRobots();
                     this.hasNotifiedSquad = true;
-                    // while(Mathf.Abs(this.transform.position.y - this.ground.transform.localScale.y/2) >= 0.3f)
-                    //     this.transform.position -= new Vector3(this.transform.position.x, this.transform.position.y - 0.5f, this.transform.position.z);
                 }
             }
             if(!isMissionComplete)
@@ -396,11 +327,12 @@ public class Drone : MonoBehaviour
                 }
                 if(isTargetDead)
                     {
-                        this.DisplayToUI("My squad has successfully brought down the target.");
+                        this.DisplayToUI("My squad has brought down the target with flying colors.");
                         isMissionComplete = true;
                     }
             }
         }
+
         timerRotation += Time.deltaTime; //the timer is incremented every at every iteration of Update() 
     }
 

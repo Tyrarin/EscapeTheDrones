@@ -112,7 +112,7 @@ public class Player : MonoBehaviour
             distX = Mathf.Abs(this.finalDestination.transform.position.x - this.transform.position.x);
             distZ = Mathf.Abs(this.finalDestination.transform.position.z - this.transform.position.z);        
         }
-        this.HP = 300; //max amount of health points
+        this.HP =300; //max amount of health points
         this.rigidBodyComponent = GetComponent<Rigidbody>();
         foreach(var bonusSphere in GameObject.FindGameObjectsWithTag("Bonus"))
         {

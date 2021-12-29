@@ -839,7 +839,7 @@ MonoBehaviour:
   ground: {fileID: 0}
   groundSize: {x: 0, y: 0, z: 0}
   timerRotation: 0
-  HQ: {fileID: 0}
+  HQ: {x: 0, y: 0, z: 0}
   isPatrol: 1
   hasDetectedPlayer: 0
   hasInheritedZone: 0
@@ -854,6 +854,11 @@ MonoBehaviour:
   hasNotifiedSquad: 0
   isMissionComplete: 0
   isTargetDead: 0
+  toFixPosition: 0
+  lastPosition: {x: 0, y: 0, z: 0}
+  nbIterationsToRecoverPosition: 0
+  timerRecover: 0
+  isAligned: 0
 --- !u!1 &244775242
 GameObject:
   m_ObjectHideFlags: 0
@@ -1530,7 +1535,7 @@ MonoBehaviour:
   ground: {fileID: 0}
   groundSize: {x: 0, y: 0, z: 0}
   timerRotation: 0
-  HQ: {fileID: 0}
+  HQ: {x: 0, y: 0, z: 0}
   isPatrol: 1
   hasDetectedPlayer: 0
   hasInheritedZone: 0
@@ -1545,6 +1550,11 @@ MonoBehaviour:
   hasNotifiedSquad: 0
   isMissionComplete: 0
   isTargetDead: 0
+  toFixPosition: 0
+  lastPosition: {x: 0, y: 0, z: 0}
+  nbIterationsToRecoverPosition: 0
+  timerRecover: 0
+  isAligned: 0
 --- !u!1 &396799139
 GameObject:
   m_ObjectHideFlags: 0
@@ -1581,8 +1591,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 1738, y: -361.9}
-  m_SizeDelta: {x: 370, y: 379}
+  m_AnchoredPosition: {x: 1738, y: -332}
+  m_SizeDelta: {x: 370, y: 430}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &396799141
 MonoBehaviour:
@@ -3060,7 +3070,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 808068789}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 47.5, y: 1.2, z: -47.5}
+  m_LocalPosition: {x: 45.9, y: 1.2, z: -47.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -3974,7 +3984,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 166.9}
+  m_AnchoredPosition: {x: 0, y: 189}
   m_SizeDelta: {x: 360, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1096046662
@@ -4832,8 +4842,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -10.9}
-  m_SizeDelta: {x: 360, y: 340}
+  m_AnchoredPosition: {x: 0, y: -13}
+  m_SizeDelta: {x: 360, y: 390}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1339757510
 MonoBehaviour:
@@ -5174,7 +5184,7 @@ MonoBehaviour:
   ground: {fileID: 0}
   groundSize: {x: 0, y: 0, z: 0}
   timerRotation: 0
-  HQ: {fileID: 0}
+  HQ: {x: 0, y: 0, z: 0}
   isPatrol: 1
   hasDetectedPlayer: 0
   hasInheritedZone: 0
@@ -5189,6 +5199,11 @@ MonoBehaviour:
   hasNotifiedSquad: 0
   isMissionComplete: 0
   isTargetDead: 0
+  toFixPosition: 0
+  lastPosition: {x: 0, y: 0, z: 0}
+  nbIterationsToRecoverPosition: 0
+  timerRecover: 0
+  isAligned: 0
 --- !u!1 &1535814980
 GameObject:
   m_ObjectHideFlags: 0
@@ -7121,7 +7136,7 @@ MonoBehaviour:
   ground: {fileID: 0}
   groundSize: {x: 0, y: 0, z: 0}
   timerRotation: 0
-  HQ: {fileID: 0}
+  HQ: {x: 0, y: 0, z: 0}
   isPatrol: 1
   hasDetectedPlayer: 0
   hasInheritedZone: 0
@@ -7136,6 +7151,11 @@ MonoBehaviour:
   hasNotifiedSquad: 0
   isMissionComplete: 0
   isTargetDead: 0
+  toFixPosition: 0
+  lastPosition: {x: 0, y: 0, z: 0}
+  nbIterationsToRecoverPosition: 0
+  timerRecover: 0
+  isAligned: 0
 --- !u!1001 &7006891840470753707
 PrefabInstance:
   m_ObjectHideFlags: 0

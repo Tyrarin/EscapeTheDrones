@@ -33,7 +33,7 @@ Une des équipes de robots attendant patiemment d'être réveillée
 
 ![cohésion](./Images/demo.gif)
 
-Dans cette courte partie, le joueur se fait rapidement détecter par le drone 2 (en jaune) puis pas le drone 3 (en noir). Sentant que ses secondes sont comptées, le joueur décise de presser la touche 'C' pour passer en vue aérienne et assure la victoire en consommant une sphère noire, stoppant dans leur élan tous les drones et robots actifs pendant une durée de 5 secondes.
+Dans cette courte partie, le joueur se fait rapidement détecter par le drone 2 (en jaune) puis par le drone 3 (en noir). Sentant que ses secondes sont comptées, le joueur décise de presser la touche 'C' pour passer en vue aérienne et assure la victoire en consommant une sphère noire, stoppant dans leur élan tous les drones et robots actifs pendant une durée de 5 secondes.
 
 ## Implémentation du projet
 
@@ -58,15 +58,22 @@ Les drones se voient attribués (dans `Start()`) une zone qu'ils vont devoir sur
 Ce nombre de drones est possiblement la seule variable fixée à l'avance : si on voulait, on pourrait très bien ajouter autant de cercles verts, de murs ou de robots qu'on voudrait sans que ça soit un problème pour le fonctionnement du jeu.
 
 Chacune des zones de patrouille est un rectangle de la longueur de la carte et avec un largeur valant un quart de cette carte. 
+
 Toutes les 5 secondes, chaque drone va effectuer un rotation sur l'axe y grâce à l'appel de la méthode `RotationDroneRandom()`. Cette valeur de rotation peut prendre les valeurs 0, 90, 180 ou 270. Ainsi il peut faire une rotation dans n'importe quelle direction ou peut continuer dans la même qu'avant la rotation.
-Puisque les zones sont assez étroites en comparaison avec la longueur, cette dernière est généralement privilégiée : si le drone se déplace dans la direction de la longueur (quel que soit le sens), il a bien plus de chances de continuer tout droit. Spécifiquement, un drone se déplaçant dans cette direction n'a que 25% de chances d'en changer.
-Aussi, si un drone atteint la limite de sa zone de patrouille, il effectue simplement une rotation dans la même direction mais dans le sens opposé.
+Puisque les zones sont assez étroites en comparaison avec la longueur, cette dernière est généralement privilégiée : si le drone se déplace dans la direction de la longueur (quel que soit le sens), il a plus de chances de continuer tout droit. Spécifiquement, un drone se déplaçant dans cette direction a 50% de probabilité d'en changer.
+Aussi, la méthode `Mathfs.Clamp` est utilisée pour garder un drone dans sa zone : s'il se rapproche un peu trop d'une des limites à telle point qu'il se retrouve à une distance inférieure à 2 mètres, il est remis à sa place et effectue une nouvelle rotation aléatoire.
 Ainsi, en jeu, il est possible de conjecturer leur future trajectoire en pronostiquant qu'il vont continuer d'aller tout droit, mais il y a toujours un risque qu'au dernier moment ils changent totalement de direction.
 
-A chaque itération de `Drone.Update()`, la méthode `DetectionLaser()` est appelée. Celle-ci permet au drone de lancer une multitude de raycasts au moyen de 2 boucles `for`. L'intersection entre ces rayons et le sol produit un carré de 10 mètres de côté. Ces rayons sont particulièrement envoyés sur la couche 8, celle sur laquelle se trouve le joueur. Ainsi, si `Physics.Raycast(ray, out hit, range, layer_mask)` vaut `true` cela signifie qu'un rayon est entré en contact avec le joueur et que ce dernier se trouve alors juste en-dessous du drone. 
-Ce drone a alors 2 missions : la première est de prévenir les autres drones qu'il a détecté le joueur et qu'il ne peut plus patrouiller : un autre drone hérite alors de la zone en question. La deuxième mission du drone consiste à aller jusqu'à un point se trouvant au-dessus de son équipe de robots appelé le HQ (quartier général) avant de réveiller les dits-robots.
+A chaque itération de `Drone.Update()`, la méthode `DetectionLaser()` est appelée. Celle-ci permet au drone de lancer une multitude de raycasts au moyen de 2 boucles `for`. L'intersection entre ces rayons et le sol produit un carré de 10 mètres de côté. 
+
+![detection](./Images/detection.JPG)
+
+Ces rayons sont particulièrement envoyés sur la couche 8, celle sur laquelle se trouve le joueur. Ainsi, si `Physics.Raycast(ray, out hit, range, layer_mask)` vaut `true`, cela signifie qu'un rayon est entré en contact avec le joueur et que ce dernier se trouve alors juste en-dessous du drone. 
+Ce drone a alors 2 missions : la première est de prévenir les autres drones qu'il a détecté le joueur et qu'il ne peut plus patrouiller : les autres drones vont alors se partager la zone laissée à l'abandon. Plus spécifiquement toutes les zones vont être recalculées pour être partagées équitablement entre tous les drones restants.
+La deuxième mission du drone consiste à aller jusqu'à un point se trouvant au-dessus de son équipe de robots appelé le HQ (quartier général) avant de réveiller les dits-robots. Sur les axes X et Z, le HQ est placé à la position moyenne des robots de l'équipe et à la même altitude que le drone.
 Ces deux missions font respectivement appel à deux méthodes très importantes de la classe Drone :
-- `IntelligentRepartition()` : Elle est appelée dès la détection du joueur par un drone. Grâce à une liste contenant tous les drones (dont le drone qui appelle `IntelligentRepartition()`), le drone peut élargir la zone d'un autre drone. Cette modification n'est pas dynamique car le choix du drone auquel confier la zone est déterminé à l'avance. Par exemple, si le drone 1 détecte le joueur, il va confier en priorité sa zone au drone 2. Ceci-dit, il est possible que le drone 2 ait déjà détecté le joueur, auquel cas il a déjà confié sa propre zone. Le drone 1 va alors essayer de confier sa zone au drone 3, sauf si ce dernier a déjà légué sa zone, et ainsi de suite. Si ce drone 1 ne trouve aucun drone en mesure de patrouiller dans sa zone à sa place, cela signifie qu'il était le dernier drone à n'avoir pas détecté le joueur et que par conséquent il patrouillait déjà dans toute la carte. Il est à noter que si un drone hérite de la zone d'un autre drone, et que par conséquent sa zone initiale est élargie, la probabilité de continuer tout droit après 5 secondes n'est plus de 75% mais de 25% comme chacune des autres directions. Aussi, puisque la surface à surveiller est considérablement plus grande, la vitesse du drone qui hérite est augmentée de 50% (cumulable s'il hérite encore d'autres zones)
+- `AdvancedRepartition()` : Elle est appelée dès la détection du joueur par un drone. Grâce à une liste contenant tous les drones (dont le drone qui appelle `AdvancedRepartition()`), le drone se retire de sa liste de drones ainsi que de celle des autres drones puis appelle `InitZoneLimit` qui va recalculer les zones des drones restants.
+Contrairement à une version antérieure (trouvable sur le dépot sous le nom de `IntelligentRepartition()`), cette modification des zones est dynamique car elle ne dépend pas du nombre de drones. Pour ajouter un drone patrouilleur, il suffit simplement de créer un nouveau drone et de lui attribuer un nouveau tag (et des robots ayant le même tag si l'on veut qu'il fasse quelque chose après la détection).
 - `AwakeRobots()` : Elle est appelée une fois que le drone a rejoint le quartier général. Ce dernier va alors réveiller tous les robots de la liste de son équipe en passant l'attribut `isActive` de chacun de ces robots à `true`. Il va aussi leur confier les deux masques à prendre en compte pour leur mission : `layer_mask` qui va permettre de lancer des raycasts dans la couche où se trouve le joueur, et `layer_mask_wall` qui est le masque permettant aux robots de détecter les murs. Une fois que le drone a appelé `AwakeRobots()`, il reste au même point à altitude constante.
 
 ### Déplacement des robots et mise à feu via raycasts
@@ -109,4 +116,8 @@ Nota Bene : l'exécutable porte le nom de `Turn-based fight.exe` car c'était à
 
 - https://github.com/tdeporte/Unity_FPS : inspiration du dépot git de Tom et Axel pour mettre en place dans ce projet les raycasts ainsi que la vue en FPS.
 
-- https://www.youtube.com/watch?v=v1UGTTeQzbo : Quelques éléments de la vidéo 2D Character Health Bars in Unity / 2021 par Distorted Pixel Studios ont été utilisés pour créer un slider prenant le rôle d'une barre de vie en haut à gauche de l'écran.
+- https://www.youtube.com/watch?v=v1UGTTeQzbo : quelques éléments de la vidéo 2D Character Health Bars in Unity / 2021 par Distorted Pixel Studios ont été utilisés pour créer un slider prenant le rôle d'une barre de vie en haut à gauche de l'écran.
+
+- https://github.com/amassonie/unitydemo_raycast : toute ressemblance avec les robots du projet d'Alexandre, Alexis et Clément est justifiée car il s'agit bel et bien du même prefab.
+
+- https://assetstore.unity.com/packages/3d/vehicles/air/simple-drone-190684 : ce modèle a été utilisé pour les drones.

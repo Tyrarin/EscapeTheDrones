@@ -57,25 +57,25 @@ ScriptsOnlyBuild:
     - Class: 108
       Script: {instanceID: 0}
     - Class: 114
-      Script: {instanceID: 1484}
+      Script: {instanceID: 1486}
     - Class: 114
-      Script: {instanceID: 1632}
+      Script: {instanceID: 1634}
     - Class: 114
-      Script: {instanceID: 1996}
+      Script: {instanceID: 1998}
     - Class: 114
-      Script: {instanceID: 2282}
+      Script: {instanceID: 2284}
     - Class: 114
-      Script: {instanceID: 2394}
+      Script: {instanceID: 2396}
     - Class: 114
-      Script: {instanceID: 2556}
+      Script: {instanceID: 2558}
     - Class: 114
-      Script: {instanceID: 2686}
+      Script: {instanceID: 2688}
     - Class: 114
-      Script: {instanceID: 2742}
+      Script: {instanceID: 2744}
     - Class: 114
-      Script: {instanceID: 3368}
+      Script: {instanceID: 3370}
     - Class: 114
-      Script: {instanceID: 3974}
+      Script: {instanceID: 3976}
     - Class: 115
       Script: {instanceID: 0}
     - Class: 128
@@ -413,7 +413,7 @@ ScriptsOnlyBuild:
     className: EventTrigger
   - hash:
       serializedVersion: 2
-      Hash: 5d83357dc4a3a4b2f0be71abf9d4c115
+      Hash: b1e2aac21719cfa0590a88547deada18
     assemblyName: Assembly-CSharp.dll
     namespaceName: 
     className: Drone
@@ -540,5 +540,5 @@ ScriptsOnlyBuild:
   platform: 19
   scenePathNames:
   - Assets/Scenes/MainGame.unity
-  playerPath: C:/Users/Lucas Monlezun/Pictures/SAVE/fac/aspic/dste/unity/buil-escapeTheDrones/Turn-based
+  playerPath: C:/Users/Lucas Monlezun/Pictures/SAVE/fac/aspic/dste/EscapeTheDrones/Build/Turn-based
     fight.exe
