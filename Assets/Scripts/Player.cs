@@ -35,6 +35,8 @@ public class Player : MonoBehaviour
     public float timerGameOver = 0f; //timer that is used to slightly delay the gameOver panel in order to display the final communications from the drones
     public Slider slider; //health bar that decreases along with the player's health points
     public GameObject[] walls; //list of all the walls that is used to place and rotate them randomly in the Start() method
+    public float timerTextBonus;
+    public Text textBonus;
 
 
     /*
@@ -219,10 +221,15 @@ public class Player : MonoBehaviour
                 if(bonusSphere.GetComponent<Renderer>().material.color == Color.blue) //speed bonus
                 {
                     this.speed *= 1.5f; // +50% speed
+                    this.textBonus.text = "Player speed + 50%";
+                    this.textBonus.gameObject.SetActive(true);
+                    this.timerTextBonus = 0f;
                 }
                 if(bonusSphere.GetComponent<Renderer>().material.color == Color.black) //sleep bonus
                 {
-
+                    this.textBonus.text = "All drones and robots are freezed for 5 seconds";
+                    this.textBonus.gameObject.SetActive(true);
+                    this.timerTextBonus = 0f;
                     foreach(Drone drone in Object.FindObjectsOfType<Drone>() as Drone[])
                     {
                         if(drone.isPatrol)
@@ -303,6 +310,17 @@ public class Player : MonoBehaviour
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().name); //restarts the whole scene to play a new party
             StartGame();
+        }
+
+        if(this.textBonus.gameObject.activeSelf)
+        {
+            if(this.timerTextBonus > 2f)
+            {
+                this.textBonus.text = "";
+                this.textBonus.gameObject.SetActive(false);
+            }
+            else
+                this.timerTextBonus += Time.deltaTime;
         }
     }
     
