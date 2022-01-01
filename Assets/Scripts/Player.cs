@@ -7,7 +7,6 @@ using UnityEngine.SceneManagement;
 public class Player : MonoBehaviour
 {
     public float speed = 0.001f; //speed at which the player can move
-    private Rigidbody rigidBodyComponent;
     public int HP; //total amount of health point
     public float sizeBonusSphere; //diameter of all bonus spheres
     public List<GameObject> bonusSpheres = new List<GameObject>(); //list of all the bonus spheres on the map
@@ -35,8 +34,8 @@ public class Player : MonoBehaviour
     public float timerGameOver = 0f; //timer that is used to slightly delay the gameOver panel in order to display the final communications from the drones
     public Slider slider; //health bar that decreases along with the player's health points
     public GameObject[] walls; //list of all the walls that is used to place and rotate them randomly in the Start() method
-    public float timerTextBonus;
-    public Text textBonus;
+    public float timerTextBonus; //timer used to temporarily display a text on the canvas
+    public Text textBonus; //Text that is active for 2 seconds when a bonus sphere is consumed
 
 
     /*
@@ -53,7 +52,7 @@ public class Player : MonoBehaviour
     void CameraMove(){
         if(!this.startPanel.activeSelf)
         {
-            this.mainCamera.transform.position = new Vector3(this.transform.position.x, this.transform.position.y - this.gameObject.transform.localScale.y/1.5f, this.transform.position.z);
+            this.mainCamera.transform.position = new Vector3(this.transform.position.x, this.transform.position.y - this.transform.localScale.y/1.5f, this.transform.position.z);
             rotationY += -Input.GetAxis("Mouse X") * lookSpeed;
             mainCamera.transform.localRotation = Quaternion.Euler(0f, -1f * rotationY, 0f);
             this.transform.localRotation = this.mainCamera.transform.localRotation;
@@ -101,21 +100,24 @@ public class Player : MonoBehaviour
         {
             //each wall is randomly placed on the map with a random orientation as well.
             wall.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX/2 - wall.transform.localScale.z/2), (sizeGroundX/2 - wall.transform.localScale.z/2)), 2.65f, Random.Range(-1f * (sizeGroundZ/2 - wall.transform.localScale.z/2), (sizeGroundZ/2 - wall.transform.localScale.z/2)));
-            wall.transform.Rotate(0, Random.Range(0, 180), 0);
+            wall.transform.Rotate(0, Random.Range(0, 180), 0); //random orientation too
         }
 
         this.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX-1)/2, (sizeGroundX-1)/2), 1.4f, Random.Range(-1f * (sizeGroundZ-1)/2, (sizeGroundZ-1)/2)); //the player is placed randomly on the map
         this.finalDestination.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX-1)/2, (sizeGroundX-1)/2), sizeGroundY/2 + 0.01f, Random.Range(-1f * (sizeGroundZ-1)/2, (sizeGroundZ-1)/2)); //the green circle is also placed randomly
+        
         float distX = Mathf.Abs(this.finalDestination.transform.position.x - this.transform.position.x);
         float distZ = Mathf.Abs(this.finalDestination.transform.position.z - this.transform.position.z);
+        
         while(Mathf.Sqrt(distX * distX + distZ * distZ) < sizeGroundX/1.9) //with this loop I ensure that the green circle is not too close to the player
         {
             this.finalDestination.transform.position = new Vector3(Random.Range(-1f * (sizeGroundX-1)/2, (sizeGroundX-1)/2), sizeGroundY/2 + 0.01f, Random.Range(-1f * (sizeGroundZ-1)/2, (sizeGroundZ-1)/2)); //if necessary we calculate another random location for the green circle 
             distX = Mathf.Abs(this.finalDestination.transform.position.x - this.transform.position.x);
             distZ = Mathf.Abs(this.finalDestination.transform.position.z - this.transform.position.z);        
         }
+        
         this.HP =300; //max amount of health points
-        this.rigidBodyComponent = GetComponent<Rigidbody>();
+        
         foreach(var bonusSphere in GameObject.FindGameObjectsWithTag("Bonus"))
         {
             this.bonusSpheres.Add(bonusSphere); //each GameObject with the tag "Bonus" is added to the bonusSpheres list
@@ -142,7 +144,6 @@ public class Player : MonoBehaviour
         Time.timeScale = 0f;
         this.logPanel.SetActive(false);
         this.gameOverPanel.SetActive(true);
-        //Destroy(GameObject.Find("Player"));
     }
 
 
@@ -153,7 +154,6 @@ public class Player : MonoBehaviour
     {
         this.slider.gameObject.SetActive(false);
         Time.timeScale = 0f;
-        //this.gameObject.SetActive(false);
         this.logPanel.SetActive(false);
         this.successPanel.SetActive(true);
     }
@@ -222,14 +222,14 @@ public class Player : MonoBehaviour
                 {
                     this.speed *= 1.5f; // +50% speed
                     this.textBonus.text = "Player speed + 50%";
-                    this.textBonus.gameObject.SetActive(true);
-                    this.timerTextBonus = 0f;
+                    this.textBonus.gameObject.SetActive(true); //display the message
+                    this.timerTextBonus = 0f; //starts the timer
                 }
                 if(bonusSphere.GetComponent<Renderer>().material.color == Color.black) //sleep bonus
                 {
                     this.textBonus.text = "All drones and robots are freezed for 5 seconds";
-                    this.textBonus.gameObject.SetActive(true);
-                    this.timerTextBonus = 0f;
+                    this.textBonus.gameObject.SetActive(true); //display the message
+                    this.timerTextBonus = 0f; //starts the timer
                     foreach(Drone drone in Object.FindObjectsOfType<Drone>() as Drone[])
                     {
                         if(drone.isPatrol)
@@ -278,9 +278,10 @@ public class Player : MonoBehaviour
         {
             this.Success(); //if the player is close enough to the green circle the game is finished and the player won
         }
+
         if(Input.GetKeyDown(KeyCode.C) && hasBeenDetected) //pressing the 'C' key lets the player change the view but only when it has been detected because otherwise it would be too easy
         {
-            //reset of the booleans
+            //reset of the booleans (otherwise a glich can make the player advancing without pressing a key)
             this.isKeyWPressed = false;
             this.isKeyLeftPressed = false;
             this.isKeyRightPressed = false;
@@ -289,7 +290,7 @@ public class Player : MonoBehaviour
             
             if(this.isCameraOnPlayer) //in the case the player is switching from first person view to aerial view 
             {
-                this.GetComponent<MeshRenderer>().enabled = true;
+                this.GetComponent<MeshRenderer>().enabled = true; //player becomes visible
                 this.speed /= 2.5f; //the player speed is way lower in aerial view because otherwise it would be too easy
                 this.isCameraOnPlayer = false;
                 this.mainCamera.transform.position = new Vector3(0f, 113f, 0f);
@@ -297,7 +298,7 @@ public class Player : MonoBehaviour
             }
             else //in the case the player is switching from aerial view to first person view
             {
-                this.GetComponent<MeshRenderer>().enabled = false;
+                this.GetComponent<MeshRenderer>().enabled = false; //player becomes invisible
                 this.isCameraOnPlayer = true;
                 this.speed *= 2.5f;
             }
@@ -316,11 +317,11 @@ public class Player : MonoBehaviour
         {
             if(this.timerTextBonus > 2f)
             {
-                this.textBonus.text = "";
-                this.textBonus.gameObject.SetActive(false);
+                this.textBonus.text = ""; //the message becomes an empty string
+                this.textBonus.gameObject.SetActive(false); //then it's not displayed anymore
             }
             else
-                this.timerTextBonus += Time.deltaTime;
+                this.timerTextBonus += Time.deltaTime; //increments only when the text is active and timer is bellow 2 seconds
         }
     }
     

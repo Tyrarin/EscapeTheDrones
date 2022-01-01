@@ -847,7 +847,6 @@ MonoBehaviour:
   zoneMaxX: 0
   zoneMinZ: 0
   zoneMaxZ: 0
-  tags: []
   drones: []
   log: {fileID: 1339757510}
   screenChange: {fileID: 1096046662}
@@ -1543,7 +1542,6 @@ MonoBehaviour:
   zoneMaxX: 0
   zoneMinZ: 0
   zoneMaxZ: 0
-  tags: []
   drones: []
   log: {fileID: 1339757510}
   screenChange: {fileID: 1096046662}
@@ -5184,7 +5182,6 @@ MonoBehaviour:
   zoneMaxX: 0
   zoneMinZ: 0
   zoneMaxZ: 0
-  tags: []
   drones: []
   log: {fileID: 1339757510}
   screenChange: {fileID: 1096046662}
@@ -7106,7 +7103,6 @@ MonoBehaviour:
   zoneMaxX: 0
   zoneMinZ: 0
   zoneMaxZ: 0
-  tags: []
   drones: []
   log: {fileID: 1339757510}
   screenChange: {fileID: 1096046662}

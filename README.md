@@ -7,15 +7,17 @@ Le joueur incarne un personnage, une capsule rouge. Le but est de se déplacer j
 il a gagné. Ceci dit, il n'est pas évident de le repérer car la caméra (en vue à la première personne) est assez basse et ne permet donc pas de le distinguer de loin.
 De plus, la position du joueur mais aussi du disque vert sont aléatoires sur une carte de 130m x 130m (1,7 hectare).
 
-Cependant la vraie difficulté réside en la surveillance de plusieurs drones sur la carte : si l'un d'eux détecte le joueur, il va avertir une équipe de 3 robots snipers
-qui vont tirer sur le joueur toutes les 2 secondes tout en se déplaçant vers lui. Les dégats sont inversement proportionnels à la distance entre un robot et le joueur et ce dernier n'a que 300 points de vie ; il ne faut donc pas laisser les robots se rapprocher, ou bien il faut se cacher derrière l'un des 30 murs placés aléatoirement sur la carte.
+Cependant la vraie difficulté réside en la surveillance par plusieurs drones sur la carte : si l'un d'eux détecte le joueur, il va avertir une équipe de 3 robots snipers
+qui vont tirer sur le joueur toutes les 2 secondes tout en se déplaçant vers lui. Les dégats sont inversement proportionnels à la distance entre un robot et le joueur et ce dernier n'a que 300 points de vie ; il ne faut donc pas laisser les robots se rapprocher, ou alors il faut se cacher derrière l'un des 30 murs placés aléatoirement sur la carte.
 
 Dès lors que le joueur est détecté par au moins un drone, il peut alterner entre la vue à la première personne et une vue globale aérienne en appuyant sur la touche 'C'.
-Cela dit en vue aérienne, puisqu'il est facile de situer le cercle vert, la vitesse est divisée par 2,5.
+Cela dit en vue aérienne, puisqu'il est facile de situer le cercle vert, le joueur est 2,5 fois plus lent qu'en vue à la première personne.
 
 Il est d'ailleurs possible de modifier la vitesse du joueur grâce à des bonus eux aussi placés aléatoirement. Ces bonus de vitesse prennent la forme de sphères bleues et augmentent de
 50% la vitesse du joueur et sont cumulables.
 Il existe aussi des sphères noires, plus rares, qui permettent de stopper tous les drones et robots actifs pendant une durée de 5 secondes.
+
+Dès qu'un drone ne patrouille plus il soumet aux drones restants une nouvelle répartition des zones de surveillances de telle sorte à ce que toute position est susceptible d'être surveillée par un des drones.
 
 ![cercle_vert](./Images/cercle_vert.JPG)
 
@@ -36,9 +38,20 @@ Durant cette partie, le joueur récupère deux sphères bleues pour augmenter sa
 
 ![defaite](./Images/demo3.gif)
 
-Dans cette partie le joueur se fait détecter par plusieurs drones et choisit de ne pas passer en vue aérienne pour gagner dans les règles de l'art. Cependant, voyant sa jauge de vie se vider, il décide de sortir de la vue à la première personne mais c'est peine perdue : le disque vert est trop éloigné et les 6 robots mettent le joueur hors d'état de nuire.
+Dans cette partie le joueur se fait détecter par plusieurs drones et choisit de ne pas passer en vue aérienne pour gagner dans les règles de l'art. Cependant, voyant sa jauge de vie se vider, il décide au final de sortir de la vue à la première personne pour espérer s'en sortir mais c'est peine perdue : le disque vert est trop éloigné et les 6 robots mettent très vite le joueur hors d'état de nuire.
 
 ## Implémentation du projet
+
+### Arborescence des dossiers
+
+Le dépot est composé de plusieurs dossiers différents :
+- `Assets/` qui est le dossier comprenant la quasi-totalité du projet. C'est dans ce dossier que se trouvent tous les scripts `C#`, les prefabs (contenant des prefabs pour les murs, les robots ou encore les drones), les materials ou encore le contenu de la scène correspondant au scénario.
+- `Build/` qui contient les fichiers nécessaires à l'exécution du scénario dont le fichier exécutable `.exe`.
+- `Libary/` qui est une sorte de cache pour `Assets/`.
+- `Logs/` qui comprend toutes les traces de messages, de warnings ou d'erreurs apparus dans l'application.
+- `UserSettings/` qui contient les préférences de l'utilisateur dans l'éditeur.
+- `Packages/` où se trouvent une multitude d'éléments compressés du projet.
+- `ProjectSettings/` contenant plein de configurations du projet.
 
 ### Les scripts
 
@@ -50,7 +63,7 @@ son parcours qui est aléatoire au sein de sa zone mais également la manière d
 
 ### Déplacement du joueur
 
-En vue à la première personne, il faut appuyer sur la touche 'W' pour avancer. Pour cela il était difficile de se contenter de `Input.GetKeyDown(KeyCode.W)` ou `Input.GetKeyUp(KeyCode.W)` car il fallait alors appuyer de nombreuses fois pour avancer un petit peu, en raison la fréquence de l'appel à Update(). J'ai alors eu l'idée de passer un booléen à `true` lorsque Input.GetKeyDown(KeyCode.W) est vrai, et d'effectuer le déplacement à chaque itération avec `this.transform.position += this.transform.forward * this.speed/10 * Time.deltaTime;`. Dès que Input.GetKeyUp(KeyCode.W) est à true, cela signifie que l'utilisateur a lâché la pression sur le bouton 'W' et je passe alors le booléen à `false`, arrêtant ainsi le mouvement.
+En vue à la première personne, il faut appuyer sur la touche 'W' pour avancer. Pour cela il était difficile de se contenter de `Input.GetKeyDown(KeyCode.W)` ou `Input.GetKeyUp(KeyCode.W)` car il fallait alors appuyer de nombreuses fois pour avancer un petit peu, en raison la fréquence de l'appel à `Update()`. J'ai alors eu l'idée de passer un booléen à `true` lorsque `Input.GetKeyDown(KeyCode.W)` vaut `true`, et d'effectuer le déplacement à chaque itération tant que le booléan est vrai avec `this.transform.position += this.transform.forward * this.speed/10 * Time.deltaTime`. Dès que `Input.GetKeyUp(KeyCode.W)` est à `true`, cela signifie que l'utilisateur a lâché la pression sur le bouton 'W' et le booléen est alors passé à `false`, arrêtant ainsi le mouvement.
 Pour ce qui est de la caméra, le déplacement horizontal de la souris est mesuré avec `Input.GetAxis("Mouse X")`. La rotation sur l'axe y est alors décrémentée du produit de cette mesure de la souris par un facteur de vitesse déterminé dans les attributs de la classe. Il suffit alors d'effectuer la rotation de la caméra en attribuant à la `transform.localRotation` la valeur de `Quaternion.Euler(0f, -1f * rotationY, 0f)`.
 
 En vue aérienne, le principe de l'appui des touches est également utilisé sauf qu'ici ce n'est plus la touche 'W' qui produit un déplacement. Puisque la vue est globale (et donc éloignée du sol), il est très dur voire impossible de repérer l'avant ou l'arrière du personnage. De ce fait, le déplacement est géré par les flèches haut, bas, gauche et droite pour déplacer le joueur respectivement vers l'avant avec `Vector3.forward`, l'arrière avec `Vector3.back`, la gauche avec `Vector3.left` et la droite avec `Vector3.right`. La caméra est quant à elle fixée à une certaine hauteur telle qu'elle peut voir l'entièreté de la carte en étant orientée à 90 degrés sur l'axe des abscisses.
@@ -62,21 +75,23 @@ C'est la même caméra qui est utilisée pour les deux types de vues, elle voit 
 Les drones se voient attribués (dans `Start()`) une zone qu'ils vont devoir surveiller. Cette attribution est faite dynamiquement dans le code.
 Chacune des zones de patrouille est un rectangle de la longueur de la carte et avec un largeur étant le quotient de la largeur de la carte par le nombre de drones patrouilleurs. 
 
-Toutes les 5 secondes, chaque drone va effectuer un rotation sur l'axe y grâce à l'appel de la méthode `RotationDroneRandom()`. Cette valeur de rotation peut prendre les valeurs 0, 90, 180 ou 270. Ainsi il peut faire une rotation dans n'importe quelle direction ou peut continuer dans la même qu'avant la rotation.
-Puisque les zones sont assez étroites en comparaison avec la longueur, cette dernière est généralement privilégiée : si le drone se déplace dans la direction de la longueur (quel que soit le sens), c'est-à-dire l'axe Z, il a plus de chances de continuer tout droit. Spécifiquement, un drone se déplaçant dans cette direction a 50% de probabilité d'en changer.
-Aussi, la méthode `Mathf.Clamp` est utilisée pour garder un drone dans sa zone : s'il se rapproche un peu trop d'une des limites à telle point qu'il se retrouve à une distance inférieure à 2 mètres, il est remis à sa place et effectue une nouvelle rotation aléatoire.
-Ainsi, en jeu, il est possible de conjecturer leur future trajectoire en pronostiquant qu'il vont continuer d'aller tout droit, mais il y a toujours un risque qu'au dernier moment ils changent totalement de direction (une chance sur deux).
+Aussi, chaque drone est placé aléatoirement dans sa zone de patrouille.
 
-A chaque itération de `Drone.Update()`, la méthode `DetectionLaser()` est appelée. Celle-ci permet au drone de lancer une multitude de raycasts au moyen de 2 boucles `for`. L'intersection entre ces rayons et le sol produit un carré de 10 mètres de côté. 
+Toutes les 5 secondes, chaque drone va effectuer une rotation sur l'axe Y grâce à l'appel de la méthode `RotationDroneRandom()`. Cette valeur de rotation peut prendre les valeurs 0, 90, 180 ou 270. Ainsi il peut faire une rotation dans n'importe quelle direction ou peut continuer dans la même qu'avant la rotation.
+Puisque les zones sont assez étroites en comparaison à la longueur, la direction de cette dernière est privilégiée : si le drone se déplace dans la direction de la longueur (quel que soit le sens), c'est-à-dire l'axe Z, il a plus de chances de continuer tout droit. Spécifiquement, un drone se déplaçant dans cette direction a 50% de probabilité de ne pas continuer tout droit.
+Aussi, la méthode `Mathf.Clamp` est utilisée pour garder un drone dans sa zone : s'il se rapproche un peu trop d'une des limites à telle point qu'il se retrouve à une distance inférieure à 2 mètres, il est remis à sa place et effectue une nouvelle rotation aléatoire.
+Ainsi, en jeu, il est possible de conjecturer leur future trajectoire en pronostiquant s'ils vont continuer d'aller tout droit ou non, en sachant qu'il y a toujours un risque qu'au dernier moment ils changent totalement de direction (une chance sur deux).
+
+A chaque itération de `Drone.Update()`, la méthode `DetectionLaser()` est appelée. Celle-ci permet au drone de lancer une multitude de raycasts au moyen de 2 boucles `for`. L'intersection entre ces rayons et le sol produit un carré de plusieurs mètres de côté. 
 
 ![detection](./Images/detection.JPG)
 
 Ces rayons sont particulièrement envoyés sur la couche 8, celle sur laquelle se trouve le joueur. Ainsi, si `Physics.Raycast(ray, out hit, range, layer_mask)` vaut `true`, cela signifie qu'un rayon est entré en contact avec le joueur et que ce dernier se trouve alors juste en-dessous du drone. 
-Ce drone a alors 2 missions : la première est de prévenir les autres drones qu'il a détecté le joueur et qu'il ne peut plus patrouiller : les autres drones vont alors se partager la zone laissée à l'abandon. Plus spécifiquement toutes les zones vont être recalculées pour être partagées équitablement entre tous les drones restants.
+Ce drone a alors 2 missions : la première est de prévenir les autres drones qu'il a détecté le joueur et qu'il ne peut plus patrouiller : les autres drones vont alors se partager la zone laissée à l'abandon. Plus spécifiquement toutes les zones vont être recalculées (par le drone qui se retire) pour être partagées équitablement entre tous les drones restants.
 La deuxième mission du drone consiste à aller jusqu'à un point se trouvant au-dessus de son équipe de robots appelé le HQ (quartier général) avant de réveiller les dits-robots. Sur les axes X et Z, le HQ est placé à la position moyenne des robots de l'équipe et à la même altitude que le drone.
 Ces deux missions font respectivement appel à deux méthodes très importantes de la classe Drone :
 - `AdvancedRepartition()` : Elle est appelée dès la détection du joueur par un drone. Grâce à une liste contenant tous les drones (dont le drone qui appelle `AdvancedRepartition()`), le drone se retire de sa liste de drones ainsi que de celle des autres drones puis appelle `InitZoneLimit` qui va recalculer les zones des drones restants.
-Contrairement à une version antérieure (trouvable sur des commits antérieurs dans le dépot sous le nom de `IntelligentRepartition()`), cette modification des zones est dynamique car elle ne dépend pas du nombre de drones. Pour ajouter un drone patrouilleur, il suffit simplement de créer un nouveau drone et de lui attribuer un nouveau tag (et des robots ayant le même tag si l'on veut qu'il fasse quelque chose après la détection).
+Contrairement à une version antérieure (trouvable dans des commits antérieurs dans le dépot sous le nom de `IntelligentRepartition()`), cette modification des zones est dynamique car elle ne dépend pas du nombre de drones. Pour ajouter un drone patrouilleur, il suffit simplement de créer un nouveau drone et de lui attribuer un nouveau tag (lui mettre un tag déjà existant est une mauvaise idée car le drone au tag doublon pourrait bien s'attribuer des robots qui ne sont pas censés être sous sa responsabilité). Si on veut que le drone fasse quelque chose après avoir détecté le joueur, il est important de lui confier également un ou plusieurs robots ayant le même tag.
 - `AwakeRobots()` : Elle est appelée une fois que le drone a rejoint le quartier général. Ce dernier va alors réveiller tous les robots de la liste de son équipe en passant l'attribut `isActive` de chacun de ces robots à `true`. Il va aussi leur confier les deux masques à prendre en compte pour leur mission : `layer_mask` qui va permettre de lancer des raycasts dans la couche où se trouve le joueur, et `layer_mask_wall` qui est le masque permettant aux robots de détecter les murs. Une fois que le drone a appelé `AwakeRobots()`, il reste au même point à altitude constante.
 
 ### Déplacement des robots et mise à feu via raycasts
@@ -94,7 +109,7 @@ De ce fait un robot peut infliger au maximum `600 * 1/1 = 600` de dégâts au jo
 ## Présentation d'un concept d'Unity : le canvas
 
 Avec Unity, l'interface utilisateur (UI) est synonyme de canvas. C'est un rectangle qu'il est possible d'adapter à l'écran de d'appareil lançant la simulation et sur lequel il est possible d'ajouter des éléments de l'UI en tant que fils. Tous ces éléments sont automatiquement placés dans une couche appelée `"UI"`.
-A même le canvas, l'élément le plus fréquemment ajouté est le panel. Cela dit, dans ce projet, la jauge de vie du joueur vient elle aussi se placer directement sur le canvas.
+A même le canvas, l'élément le plus fréquemment ajouté est le panel. Cela dit, dans ce projet, la jauge de vie du joueur et le message indiquant qu'un bonus a été consommé viennent eux-aussi se placer directement sur le canvas.
 
 S'il est coutume de ne placer qu'un panel par canvas et de créer un canvas par scène puis de faire en sorte de changer de scène par l'appui d'un bouton, ce n'est pas ce qui a été fait dans ce projet.
 En effet, il n'y a ici qu'un seul et unique canvas accueillant pas moins de 4 panels différents.
@@ -108,7 +123,7 @@ Dans le cas où le joueur a réussi à atteindre le disque vert avant de se fair
 Lorsque le joueur consomme un bonus en entrant en contact avec une sphère bleue ou une sphère noire, une exception est lancée mettant en garde le fait de modifier des collections. Ceci-dit les sphères fonctionnent tout de même parfaitement et cela ne pose pas de problème pour l'exécutable.
 
 Un autre soucis concerne justement la sphère bleue permettant d'augmenter la vitesse du joueur. 
-Lorsque le joueur atteint une vitesse particulièrement élevée (à partir de 2 sphères bleues consommées), il passe à travers les murs. Ce problème persiste même en ajoutant un composant `RigidBody` à chaque mur et en leur attribuant des masses de plusieurs tonnes.
+Lorsque le joueur atteint une vitesse particulièrement élevée (à partir de 2 sphères bleues consommées), il passe à travers les murs. Ce problème persiste même en ajoutant un composant `RigidBody` à chaque mur et en leur attribuant des masses de plusieurs tonnes. Disons qu'il est si rapide qu'il parvient à phaser à travers la matière.
 
 
 Nota Bene : l'exécutable porte le nom de `Turn-based fight.exe` car c'était à l'origine le nom du projet avant que le concept d'EscapeTheDrones ne soit trouvé. 

@@ -25,18 +25,13 @@ public class Drone : MonoBehaviour
     public float zoneMaxX; //maximum value the drone can take on the x axis
     public float zoneMinZ; //minimum value the drone can take on the z axis
     public float zoneMaxZ; //maximum value the drone can take on the z axis
-    public List<string> tags = new List<string>(); //list that contains all the tags of the drones
     public List<Drone> drones = new List<Drone>(); //list that contains all the drones (including the drone the script is attached to)
     public Text log; //where all the communications are displayed
     public Text screenChange; //notification that the player can change the view
     public bool hasNotifiedSquad; //boolean that is true when a drone a detected the player and notified another drone (if there are any that is still patrolling)
     public bool isMissionComplete; //boolean that is true when a robot from the drone's squad has brought down the player
-    public bool isTargetDead;
-    public bool toFixPosition;
-    public Vector3 lastPosition;
-    public int nbIterationsToRecoverPosition;
-    public float timerRecover;
-    public bool isAligned;
+    public bool isTargetDead; //boolean that is true if target is dead
+    public bool toFixPosition; //boolean that is true if the position needs to be fixed
 
 
     /*
@@ -93,10 +88,6 @@ public class Drone : MonoBehaviour
 
     void Start()
     {
-        this.isAligned = false;
-        this.timerRecover = 0f;
-        this.nbIterationsToRecoverPosition = 0;
-        this.lastPosition = this.transform.position;
         this.toFixPosition = false;
         this.isTargetDead = false;
         this.screenChange.gameObject.SetActive(false); //the notification that the view can be changed is not visible since the player isn't detected yet 
@@ -129,9 +120,8 @@ public class Drone : MonoBehaviour
 
         foreach(Drone drone in FindObjectsOfType(typeof(Drone)) as Drone[])
         {
-            if(!this.drones.Contains(drone) && !this.tags.Contains(drone.tag))
+            if(!this.drones.Contains(drone))
             {
-                this.tags.Add(drone.tag);
                 this.drones.Add(drone);
             }
         }
@@ -139,10 +129,7 @@ public class Drone : MonoBehaviour
 
         InitZoneLimit();
 
-        foreach(Drone drone in this.drones)
-        {
-            drone.transform.position = new Vector3(Random.Range(drone.zoneMinX + 1f, drone.zoneMaxX - 1f), drone.gameObject.transform.position.y, Random.Range(drone.zoneMinZ + 1, drone.zoneMaxZ - 1f));
-        }
+        this.transform.position = new Vector3(Random.Range(this.zoneMinX + 1f, this.zoneMaxX - 1f), this.gameObject.transform.position.y, Random.Range(this.zoneMinZ + 1, this.zoneMaxZ - 1f)); //each drone is placed randomly in its patrol zone
         
     }
 
@@ -190,7 +177,6 @@ public class Drone : MonoBehaviour
             {
                 if(drone.tag == this.tag)
                     continue;
-                drone.tags.Remove(this.tag);
                 drone.drones.Remove(this);
 
                 string response = droneResponse[Random.Range(0, droneResponse.Count)];
@@ -282,14 +268,14 @@ public class Drone : MonoBehaviour
                 this.toFixPosition = false;
             }
         }
-        if(isPatrol)
+        if(isPatrol) //not else if because that way if toFixPosition becomes false and isPatrol true then this condition will be run in the same iteration
         {
-            if(this.timerRotation >= 2)
+            if(this.timerRotation >= 2) //every 2 seconds
             {
-                RotationDroneRandom(true);
+                RotationDroneRandom(true); //parameter is true because it's called from the fact that the timer is completed
             }
             
-            OnBorder(transform.position.x, transform.position.z); //if a drone is close to the border it turns back and the previous loop is reset 
+            OnBorder(transform.position.x, transform.position.z); //if a drone is close to the border it turns in a random direction
             this.transform.position += this.transform.forward * this.speed * Time.deltaTime;
             
             Vector3 current_pos = transform.position;
@@ -303,7 +289,7 @@ public class Drone : MonoBehaviour
             }
             DetectionLaser();
         }
-        else if(hasDetectedPlayer)
+        else if(hasDetectedPlayer) //this way if a drone is not patrolling for a different reason than having detected the player, the UAV won't go to it HQ
         {
             transform.position = Vector3.MoveTowards(transform.position, this.HQ, 20f * Time.deltaTime);
             float dX = Mathf.Abs(this.transform.position.x - HQ.x);
