@@ -97,7 +97,7 @@ public class Drone : MonoBehaviour
         this.hasInheritedZone = false;
         this.isMissionComplete = false;
         this.allRobots = FindObjectsOfType(typeof(Robot)) as Robot[];
-        this.speed = 20f;
+        this.speed = 25f;
         float posXRobotsSum = 0f;
         float posZRobotsSum = 0f;
         foreach (Robot robot in FindObjectsOfType(typeof(Robot)) as Robot[])

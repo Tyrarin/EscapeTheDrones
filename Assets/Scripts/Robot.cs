@@ -78,7 +78,7 @@ public class Robot : MonoBehaviour
             float dX = Mathf.Abs(this.transform.position.x - target.transform.position.x);
             float dZ = Mathf.Abs(this.transform.position.z - target.transform.position.z);
             float distance = Mathf.Round(Mathf.Sqrt(dX * dX + dZ * dZ)); //every iteration of Update() the distance between the robot and the player is updated
-            this.transform.position = Vector3.MoveTowards(transform.position, this.target.transform.position, 3f * Time.deltaTime); //the robot moves towards the player in each iteration of Update()
+            this.transform.position = Vector3.MoveTowards(transform.position, this.target.transform.position, 4f * Time.deltaTime); //the robot moves towards the player in each iteration of Update()
             
             if(this.timer > 2)
             {
