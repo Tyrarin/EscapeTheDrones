@@ -854,10 +854,6 @@ MonoBehaviour:
   isMissionComplete: 0
   isTargetDead: 0
   toFixPosition: 0
-  lastPosition: {x: 0, y: 0, z: 0}
-  nbIterationsToRecoverPosition: 0
-  timerRecover: 0
-  isAligned: 0
 --- !u!1 &244775242
 GameObject:
   m_ObjectHideFlags: 0
@@ -1549,10 +1545,6 @@ MonoBehaviour:
   isMissionComplete: 0
   isTargetDead: 0
   toFixPosition: 0
-  lastPosition: {x: 0, y: 0, z: 0}
-  nbIterationsToRecoverPosition: 0
-  timerRecover: 0
-  isAligned: 0
 --- !u!1 &396799139
 GameObject:
   m_ObjectHideFlags: 0
@@ -3284,8 +3276,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.25}
   m_AnchorMax: {x: 1, y: 0.75}
-  m_AnchoredPosition: {x: -5, y: 0}
-  m_SizeDelta: {x: -20, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &878244499
 PrefabInstance:
@@ -5189,10 +5181,6 @@ MonoBehaviour:
   isMissionComplete: 0
   isTargetDead: 0
   toFixPosition: 0
-  lastPosition: {x: 0, y: 0, z: 0}
-  nbIterationsToRecoverPosition: 0
-  timerRecover: 0
-  isAligned: 0
 --- !u!1 &1535814980
 GameObject:
   m_ObjectHideFlags: 0
@@ -5779,7 +5767,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0.5613208, b: 0.5613208, a: 1}
+  m_Color: {r: 0.7830189, g: 0, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -7110,10 +7098,6 @@ MonoBehaviour:
   isMissionComplete: 0
   isTargetDead: 0
   toFixPosition: 0
-  lastPosition: {x: 0, y: 0, z: 0}
-  nbIterationsToRecoverPosition: 0
-  timerRecover: 0
-  isAligned: 0
 --- !u!1001 &7006891840470753707
 PrefabInstance:
   m_ObjectHideFlags: 0
